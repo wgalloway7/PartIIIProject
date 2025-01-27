@@ -47,11 +47,21 @@ function energy(lattice::Lattice)
 end
 
 
-function single_flip!(lattice::Lattice)
-    x = rand(1:lattice.N)
-    y = rand(1:lattice.N)
-    lattice.grid[x,y] *= -1
-    return (x,y)
+function single_flip!(lattice::Lattice;reverse::Bool=false, candidate_reversing_information=nothing)
+    if !reverse
+        x = rand(1:lattice.N)
+        y = rand(1:lattice.N)
+        lattice.grid[x,y] *= -1
+        return (x,y)
+    else
+        x,y = candidate_reversing_information
+        lattice.grid[x,y] *= -1
+        #thankfully to get inverse we just flip again
+    end
+    
+    
+    
+    
 end
 
 #function k_flip
@@ -64,8 +74,8 @@ function configuration_correlation_function(lattice::Lattice, reference_lattice:
 end
 
 function configuration_correlation_function(lattice_configuration::Matrix{Int64}, reference_lattice_configuration::Matrix{Int64})
-    if size(lattice.grid) != size(reference_lattice.grid)
-        throw(ArgumentError("Reference lattice has different size to current lattice"))
+    if size(lattice_configuration) != size(reference_lattice_configuration)
+        throw(ArgumentError("Reference lattice has different size from current lattice"))
     end
 
     match_count = sum(lattice_configuration .== reference_lattice_configuration)

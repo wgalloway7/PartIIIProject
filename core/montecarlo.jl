@@ -8,6 +8,7 @@ function monte_carlo_timestep!(lattice::Lattice, candidate_generating_function!:
         println(lattice.grid)
     end
 
+    #performs move and stores information of what was done
     candidate_reversing_information = candidate_generating_function!(lattice)
     candidate_energy = energy(lattice)
 
@@ -28,8 +29,7 @@ function monte_carlo_timestep!(lattice::Lattice, candidate_generating_function!:
             printstyled("Candidate energy above energy cap \n"; color=red)
         end
 
-        #reverse candidate configuration
-        #TO DO
+        candidate_generating_function!(lattice;reverse=true,candidate_reversing_information=candidate_reversing_information)
         
         #return accepted_candidates_increase = 0
         return 0
@@ -54,7 +54,7 @@ function monte_carlo_timestep!(lattice::Lattice, candidate_generating_function!:
         return 1
     else
         #reject candidate and revert it back to the original configuration
-        #TO DO
+        candidate_generating_function!(lattice;reverse=true,candidate_reversing_information=candidate_reversing_information)
         #also return accepted_candidates_increase = 0
         return 0
     end
@@ -68,7 +68,7 @@ function run_metropolis_algorithm(lattice::Lattice, beta::Float64, maximum_itera
 
     initial_lattice = Lattice(lattice.N)
     initial_lattice.grid = deepcopy(lattice.grid)
-    current_configuration_correlation_function_valuue = configuration_correlation_function(lattice,initial_lattice)
+    current_configuration_correlation_function_value = configuration_correlation_function(lattice,initial_lattice)
     #need to make configuration_correlation_function
 
     while (current_iteration <= maximum_iterations) && (current_configuration_correlation_function_value > configuration_correlation_convergence_criteria)
