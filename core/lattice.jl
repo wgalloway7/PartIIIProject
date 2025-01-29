@@ -49,29 +49,6 @@ function energy(lattice::Lattice)
     return total_energy
 end
 
-
-function single_flip!(lattice::Lattice;reverse::Bool=false, candidate_reversing_information=nothing)
-    if !reverse
-        x = rand(1:lattice.N)
-        y = rand(1:lattice.N)
-        lattice.grid[x,y] *= -1
-        return (x,y)
-    else
-        x,y = candidate_reversing_information
-        lattice.grid[x,y] *= -1
-        #thankfully to get inverse we just flip again
-    end
-    
-    
-    
-    
-end
-
-#function k_flip
-
-
-
-
 function configuration_correlation_function(lattice::Lattice, reference_lattice::Lattice)
     return configuration_correlation_function(lattice.grid, reference_lattice.grid)
 end
@@ -86,4 +63,94 @@ function configuration_correlation_function(lattice_configuration::Matrix{Int64}
     
 
     return match_count/ total_sites
+end
+
+
+function single_flip!(lattice::Lattice;reverse::Bool=false, candidate_reversing_information=nothing,k::Int64 = 1)
+    if !reverse
+        x = rand(1:lattice.N)
+        y = rand(1:lattice.N)
+        lattice.grid[x,y] *= -1
+        return (x,y)
+    else
+        x,y = candidate_reversing_information
+        lattice.grid[x,y] *= -1
+        #thankfully to get inverse we just flip again
+    end
+end
+
+function k_chain_flip!(lattice::Lattice;reverse::Bool=false, candidate_reversing_information=nothing,k::Int64=1)
+    if !reverse
+        x = rand(1:lattice.N)
+        y = rand(1:lattice.N)
+        #wlog chain is on x axis
+        for i in 0:k-1
+            lattice.grid[mod1(x+i,N),y] *= -1
+        end
+        return (x,y)
+    else
+        x,y = candidate_reversing_information
+        for i in 0:k-1
+            lattice.grid[mod1(x+i,N),y] *= -1
+        end
+    end
+end
+
+function k_line_flip!(lattice::Lattice;reverse::Bool=false, candidate_reversing_information=nothing,k::Int64=1)
+    if !reverse
+        y = rand(1:lattice.N)
+        xvals=  rand(1:lattice.N,k)
+        for x in xvals
+            lattice.grid[x,y] *= -1
+        end
+        return (xvals,y)
+    else
+        xvals,y = candidate_reversing_information
+        for x in xvals
+            lattice.grid[x,y] *= -1
+        end
+    end
+end
+
+function unconstrained_line_flip!(lattice::Lattice; reverse::Bool=false, candidate_reversing_information=nothing,k::Int64 =1)
+    if !reverse
+        xvals = rand(1:lattice.N,k)
+        yvals = rand(1:lattice.N,k)
+        for i in 1:k
+            lattice.grid[xvals[i],yvals[i]] *= -1
+        end
+        return (xvals,yaxis)
+    else
+        xvals, yvals = candidating_reversing_information
+        for i in 1:k
+            lattice.grid[xvals[i],yvals[i]] *= -1
+        end
+    end
+end
+
+function k_square_flip!(lattice::Lattice; reverse::Bool=false, candidate_reversing_information=nothing, k::Int64=1)
+    if !reverse
+        has_hole = rand(Bool)
+        x = rand(1:lattice.N)
+        y = rand(1:lattice.N)
+        xhole = rand(1:lattice.N)
+        yhole = rand(1:lattice.N)
+        for i in 0:k-1
+            for j in 0:k-1
+                if !(x+i == xhole && y+j == yhole && has_hole)
+                    lattice.grid[mod1(x+i, lattice.N), mod1(y+j, lattice.N)] *= -1
+                end
+            end
+        end
+        return (x, y, xhole, yhole, has_hole)
+    else
+        x, y, xhole, yhole, has_hole = candidate_reversing_information
+        for i in 0:k-1
+            for j in 0:k-1
+                if !(x+i == xhole && y+j == yhole && has_hole)
+                    lattice.grid[mod1(x+i, lattice.N), mod1(y+j, lattice.N)] *= -1
+                end
+            end
+        end
+    end
 end

@@ -1,7 +1,7 @@
 #montecarlo.jl
 include("lattice.jl")
 
-function monte_carlo_timestep!(lattice::Lattice, candidate_generating_function!::Function, beta::Float64; verbose::Bool=false, energy_cap::Float64=0.0)
+function monte_carlo_timestep!(lattice::Lattice, candidate_generating_function!::Function, beta::Float64; verbose::Bool=false, energy_cap::Float64=0.0, k::Int64=1)
     current_energy = energy(lattice)
 
     if verbose
@@ -9,61 +9,25 @@ function monte_carlo_timestep!(lattice::Lattice, candidate_generating_function!:
         println(lattice.grid)
     end
 
-    candidate_reversing_information = candidate_generating_function!(lattice)
+    candidate_reversing_information = candidate_generating_function!(lattice; k=k)
     candidate_energy = energy(lattice)
 
     if verbose
-        println("Attempted move:")
-        println(candidate_reversing_information)
+        println("Candidate configuration:")
+        println(lattice.grid)
     end
 
+    energy_difference = candidate_energy - current_energy
 
-    if verbose
-        println("Current Energy: $current_energy")
-        println("Candidate Energy: $candidate_energy")
-        println("Alpha: $(exp(beta*(current_energy-candidate_energy)))")
-    end
-
-    if energy_cap != 0.0 && candidate_energy > energy_cap
-        if verbose
-            printstyled("Candidate energy above energy cap \n"; color=red)
-        end
-
-        candidate_generating_function!(lattice;reverse=true,candidate_reversing_information=candidate_reversing_information)
-        
-        #return accepted_candidates_increase = 0
-        return 0
-    end
-
-    if beta == 0.0
-        return 1
-    end
-
-    
-    #calculate acceptance probability, compare to random [0,1]
-    alpha = exp(beta * (current_energy - candidate_energy))
-
-    if rand() <= alpha
-        if verbose
-            printstyled("Switched \n"; color =:green)
-            if alpha < 1.0
-                printstyled("To higher energy \n"; color = red)
-                #not sure what is going on here
-            end
-        end
-        #also return accepted_candidates_increase = 1
+    if energy_difference <= 0 || rand() < exp(-beta * energy_difference)
         return 1
     else
-        #reject candidate and revert it back to the original configuration
-        candidate_generating_function!(lattice;reverse=true,candidate_reversing_information=candidate_reversing_information)
-        #also return accepted_candidates_increase = 0
+        candidate_generating_function!(lattice; reverse=true, candidate_reversing_information=candidate_reversing_information, k=k)
         return 0
     end
 end
 
-
-
-function run_metropolis_algorithm(lattice::Lattice, beta::Float64, maximum_iterations::Int64=1000, configuration_correlation_convergence_criteria::Float64=exp(-1); verbose::Bool=false)
+function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64; maximum_iterations::Int64=1000, configuration_correlation_convergence_criteria::Float64=exp(-1), verbose::Bool=false)
     current_iteration = 0
     accepted_candidates = 0
 
@@ -75,9 +39,11 @@ function run_metropolis_algorithm(lattice::Lattice, beta::Float64, maximum_itera
         move_type = "single flip"
         if move_type == "single flip"
             candidate_generating_function! = single_flip!
+        elseif move_type == "k chain flip"
+            candidate_generating_function! = k_chain_flip!
         end
 
-        accepted_candidates_increase = monte_carlo_timestep!(lattice, candidate_generating_function!, beta; verbose=verbose)
+        accepted_candidates_increase = monte_carlo_timestep!(lattice, candidate_generating_function!, beta; verbose=verbose, k=k)
 
         current_iteration += 1
         accepted_candidates += accepted_candidates_increase
