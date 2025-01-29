@@ -1,5 +1,7 @@
+#lattice.jl
 using Random
 using LinearAlgebra
+using Distributions 
 
 mutable struct Lattice
     #configuration of Lattice (2D array of binary spins)
@@ -24,7 +26,8 @@ function random_configuration(N::Int, m::Float64)
     choices = [-1, 1]
     p = 0.5 * (m + 1.0)
     probabilities = [1.0 - p, p]
-    return [rand(choices; weights, probabilities) for _ in 1:N, _ in 1:N]
+    spin_distribution = Categorical(probabilities)
+    return [rand(spin_distribution) == 2 ? 1 : -1 for _ in 1:N, _ in 1:N]
 end
 
 #calculate energy
@@ -83,13 +86,4 @@ function configuration_correlation_function(lattice_configuration::Matrix{Int64}
     
 
     return match_count/ total_sites
-
-    
-
-
-
-
-
-
-
-
+end

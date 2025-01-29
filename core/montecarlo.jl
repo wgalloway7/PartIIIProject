@@ -1,6 +1,7 @@
+#montecarlo.jl
 include("lattice.jl")
 
-function monte_carlo_timestep!(lattice::Lattice, candidate_generating_function!::Function, beta::Float64, verbose::Bool=false, energy_cap::Float64=0.0)
+function monte_carlo_timestep!(lattice::Lattice, candidate_generating_function!::Function, beta::Float64; verbose::Bool=false, energy_cap::Float64=0.0)
     current_energy = energy(lattice)
 
     if verbose
@@ -8,7 +9,6 @@ function monte_carlo_timestep!(lattice::Lattice, candidate_generating_function!:
         println(lattice.grid)
     end
 
-    #performs move and stores information of what was done
     candidate_reversing_information = candidate_generating_function!(lattice)
     candidate_energy = energy(lattice)
 
@@ -37,6 +37,7 @@ function monte_carlo_timestep!(lattice::Lattice, candidate_generating_function!:
 
     if beta == 0.0
         return 1
+    end
 
     
     #calculate acceptance probability, compare to random [0,1]
@@ -62,25 +63,21 @@ end
 
 
 
-function run_metropolis_algorithm(lattice::Lattice, beta::Float64, maximum_iterations::Int64=1000, configuration_correlation_convergence_criteria::Float64=exp(-1),verbose::Bool=false, )
+function run_metropolis_algorithm(lattice::Lattice, beta::Float64, maximum_iterations::Int64=1000, configuration_correlation_convergence_criteria::Float64=exp(-1); verbose::Bool=false)
     current_iteration = 0
     accepted_candidates = 0
 
     initial_lattice = Lattice(lattice.N)
     initial_lattice.grid = deepcopy(lattice.grid)
-    current_configuration_correlation_function_value = configuration_correlation_function(lattice,initial_lattice)
-    #need to make configuration_correlation_function
+    current_configuration_correlation_function_value = configuration_correlation_function(lattice, initial_lattice)
 
     while (current_iteration <= maximum_iterations) && (current_configuration_correlation_function_value > configuration_correlation_convergence_criteria)
-        #decide what candidate_generating_function is
         move_type = "single flip"
-        if move_type == "single_flip"
+        if move_type == "single flip"
             candidate_generating_function! = single_flip!
-            
+        end
 
-
-        #do monte-carlo timestep using this candidate configuration at this beta
-        accepted_candidates_increase = monte_carlo_timestep!(lattice, candidate_generating_function!, beta; verbose= verbose)
+        accepted_candidates_increase = monte_carlo_timestep!(lattice, candidate_generating_function!, beta; verbose=verbose)
 
         current_iteration += 1
         accepted_candidates += accepted_candidates_increase
@@ -96,15 +93,5 @@ function run_metropolis_algorithm(lattice::Lattice, beta::Float64, maximum_itera
         end
     end
 
-    return (converged, current_configuration_correlation_function_valuue, current_iteration, accepted_candidates)
+    return (converged, current_configuration_correlation_function_value, current_iteration, accepted_candidates)
 end
-
-        
-
-
-        
-
-
-
-
-
