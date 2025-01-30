@@ -27,7 +27,7 @@ function monte_carlo_timestep!(lattice::Lattice, candidate_generating_function!:
     end
 end
 
-function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64; maximum_iterations::Int64=1000, configuration_correlation_convergence_criteria::Float64=exp(-1), verbose::Bool=false)
+function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, move::String = "single flip"; maximum_iterations::Int64=1000, configuration_correlation_convergence_criteria::Float64=exp(-1), verbose::Bool=false)
     current_iteration = 0
     accepted_candidates = 0
 
@@ -36,11 +36,16 @@ function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64; max
     current_configuration_correlation_function_value = configuration_correlation_function(lattice, initial_lattice)
 
     while (current_iteration <= maximum_iterations) && (current_configuration_correlation_function_value > configuration_correlation_convergence_criteria)
-        move_type = "single flip"
-        if move_type == "single flip"
+        if move == "single flip"
             candidate_generating_function! = single_flip!
-        elseif move_type == "k chain flip"
+        elseif move == "k chain flip"
             candidate_generating_function! = k_chain_flip!
+        elseif move == "k line flip"
+            candidate_generating_function! = k_line_flip!
+        elseif move == "unconstrained k flip"
+            candidate_generating_function! = unconstrained_flip!
+        elseif move == "k square flip"
+            candidate_generating_function! = k_square_flip!
         end
 
         accepted_candidates_increase = monte_carlo_timestep!(lattice, candidate_generating_function!, beta; verbose=verbose, k=k)

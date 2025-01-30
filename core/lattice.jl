@@ -112,7 +112,7 @@ function k_line_flip!(lattice::Lattice;reverse::Bool=false, candidate_reversing_
     end
 end
 
-function unconstrained_line_flip!(lattice::Lattice; reverse::Bool=false, candidate_reversing_information=nothing,k::Int64 =1)
+function unconstrained_flip!(lattice::Lattice; reverse::Bool=false, candidate_reversing_information=nothing,k::Int64 =1)
     if !reverse
         xvals = rand(1:lattice.N,k)
         yvals = rand(1:lattice.N,k)
