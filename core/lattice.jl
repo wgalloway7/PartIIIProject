@@ -121,7 +121,7 @@ function unconstrained_flip!(lattice::Lattice; reverse::Bool=false, candidate_re
         end
         return (xvals,yvals)
     else
-        xvals, yvals = candidating_reversing_information
+        xvals, yvals = candidate_reversing_information
         for i in 1:k
             lattice.grid[xvals[i],yvals[i]] *= -1
         end

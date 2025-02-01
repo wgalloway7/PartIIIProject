@@ -40,22 +40,29 @@ end
 
 
 
-function plot_inverse_beta_vs_energy(lattice::Lattice, inverse_beta_range::Vector{Float64}, k_values:: Vector{Int64}, copies::Int64, move::String, filename:: String)
-    plot()
-    for k in k_values
+function plot_inverse_beta_vs_energy(lattice::Lattice, inverse_beta_range::Vector{Float64}, k_values::Vector{Int64}, copies::Int64, move::String, filename::String)
+    # Use a color gradient that ensures distinct colors
+    colors = cgrad(:RdBu, length(k_values))  # Set1 is a color palette with distinct colors
+    p = plot()
+    plot!(p, background_color = "#333333", gridcolor = :white, legend=:topright)
+    for (i, k) in enumerate(k_values)
         avg_energies = monte_carlo_vs_inverse_beta(lattice, inverse_beta_range, k , copies, move)
-        plot!(inverse_beta_range, avg_energies, label = "k = $k")
+        plot!(p, inverse_beta_range, avg_energies, label = "k = $k", color = colors[i])
     end
-    xlabel!("1/Beta")
-    ylabel!("Energy")
-    title!("Average Energy vs 1/Beta for various k")
+    
+    xlabel!("1/Beta", xlabelcolor = :white)
+    ylabel!("Energy", ylabelcolor = :white)
+    title!("Average Energy vs 1/Beta for various k", titlecolor = :white)
+    
+    # Set legend text to white
     savefig(filename)
 end
 
-inverse_beta_range = collect(0.001:0.1:6)
+
+inverse_beta_range = collect(0.001:0.1:5)
 k_values = [i for i in 1:15]
-copies = 20
-move = "k chain flip"
+copies = 50
+move = "unconstrained k flip"
 filename = "inverse_beta_vs_energy.png"
 
 plot_inverse_beta_vs_energy(lattice, inverse_beta_range, k_values, copies, move, filename)
