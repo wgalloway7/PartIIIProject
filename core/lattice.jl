@@ -30,24 +30,6 @@ function random_configuration(N::Int, m::Float64)
     return [rand(spin_distribution) == 2 ? 1 : -1 for _ in 1:N, _ in 1:N]
 end
 
-#calculate energy
-#generate matrix of sum of nearest neighbours of each site, multiply by site value to get energy contribution, sum
-function energy(lattice::Lattice)
-    N = lattice.N
-    grid = lattice.grid
-    total_energy = 0
-    for i in 1:N
-        for j in 1:N
-            total_energy += grid[i, j] * (
-                grid[mod1(i+1, N), j] +  # Right neighbor
-                grid[mod1(i-1, N), j] +  # Left neighbor
-                grid[i, mod1(j+1, N)] +  # Top neighbor
-                grid[i, mod1(j-1, N)]    # Bottom neighbor
-            )
-        end
-    end
-    return total_energy
-end
 
 function configuration_correlation_function(lattice::Lattice, reference_lattice::Lattice)
     return configuration_correlation_function(lattice.grid, reference_lattice.grid)
@@ -65,92 +47,96 @@ function configuration_correlation_function(lattice_configuration::Matrix{Int64}
     return match_count/ total_sites
 end
 
+function energy(lattice::Lattice)
+    N = lattice.N
+    grid = lattice.grid
+    total_energy = 0
+    for i in 1:N
+        for j in 1:N
+            total_energy += grid[i, j] * (
+                grid[mod1(i+1, N), j] +  # Right neighbor
+                grid[mod1(i-1, N), j] +  # Left neighbor
+                grid[i, mod1(j+1, N)] +  # Top neighbor
+                grid[i, mod1(j-1, N)]    # Bottom neighbor
+            )
+        end
+    end
+    return total_energy
+end
 
-function single_flip!(lattice::Lattice;reverse::Bool=false, candidate_reversing_information=nothing,k::Int64 = 1)
-    if !reverse
+
+function generate_moves(lattice::Lattice, move::String, k::Int64 = 1)
+    N  = lattice.N
+    if move == "single flip"
         x = rand(1:lattice.N)
         y = rand(1:lattice.N)
-        lattice.grid[x,y] *= -1
-        return (x,y)
-    else
-        x,y = candidate_reversing_information
-        lattice.grid[x,y] *= -1
-        #thankfully to get inverse we just flip again
-    end
-end
+        return ([x],[y])
 
-function k_chain_flip!(lattice::Lattice;reverse::Bool=false, candidate_reversing_information=nothing,k::Int64=1)
-    if !reverse
-        x = rand(1:lattice.N)
+    elseif move == "k chain flip"
+        x_0 = rand(1:lattice.N)
+        y_0 = rand(1:lattice.N)
+        println(([mod1(x_0 + i, N) for i in 0:k-1], [y_0 for i in 0:k-1]))
+        return ([mod1(x_0 + i, N) for i in 0:k-1], [y_0 for i in 0:k-1])
+
+
+    elseif move == "k line flip"
         y = rand(1:lattice.N)
-        #wlog chain is on x axis
-        for i in 0:k-1
-            lattice.grid[mod1(x+i,N),y] *= -1
-        end
-        return (x,y)
-    else
-        x,y = candidate_reversing_information
-        for i in 0:k-1
-            lattice.grid[mod1(x+i,N),y] *= -1
-        end
-    end
-end
-
-function k_line_flip!(lattice::Lattice;reverse::Bool=false, candidate_reversing_information=nothing,k::Int64=1)
-    if !reverse
-        y = rand(1:lattice.N)
-        xvals=  rand(1:lattice.N,k)
-        for x in xvals
-            lattice.grid[x,y] *= -1
-        end
-        return (xvals,y)
-    else
-        xvals,y = candidate_reversing_information
-        for x in xvals
-            lattice.grid[x,y] *= -1
-        end
-    end
-end
-
-function unconstrained_flip!(lattice::Lattice; reverse::Bool=false, candidate_reversing_information=nothing,k::Int64 =1)
-    if !reverse
-        xvals = rand(1:lattice.N,k)
-        yvals = rand(1:lattice.N,k)
-        for i in 1:k
-            lattice.grid[xvals[i],yvals[i]] *= -1
-        end
-        return (xvals,yvals)
-    else
-        xvals, yvals = candidate_reversing_information
-        for i in 1:k
-            lattice.grid[xvals[i],yvals[i]] *= -1
-        end
-    end
-end
-
-function k_square_flip!(lattice::Lattice; reverse::Bool=false, candidate_reversing_information=nothing, k::Int64=1)
-    if !reverse
+        return (rand(1:lattice.N,k), [y for i in 1:k],)
+      
+    elseif move == "unconstrained k flip"
+        return (rand(1:lattice.N,k), rand(1:lattice.N,k))
+        
+    elseif move == "k square flip"
         has_hole = rand(Bool)
-        x = rand(1:lattice.N)
-        y = rand(1:lattice.N)
-        xhole = rand(1:lattice.N)
-        yhole = rand(1:lattice.N)
-        for i in 0:k-1
-            for j in 0:k-1
-                if !(x+i == xhole && y+j == yhole && has_hole)
-                    lattice.grid[mod1(x+i, lattice.N), mod1(y+j, lattice.N)] *= -1
-                end
-            end
+        x0 = rand(1:lattice.N)
+        y0 = rand(1:lattice.N)
+        
+        indices = [(mod1(x0 + i, lattice.N), mod1(y0 + j, lattice.N)) for i in 0:k-1, j in 0:k-1]
+
+        if has_hole && !isempty(indices)
+            hole_index = rand(1:length(indices))
+            deleteat!(indices, hole_index)
         end
-        return (x, y, xhole, yhole, has_hole)
+        xvals = [coord[1] for coord in indices]
+        yvals = [coord[2] for coord in indices]
+        return (xvals, yvals)
     else
-        x, y, xhole, yhole, has_hole = candidate_reversing_information
-        for i in 0:k-1
-            for j in 0:k-1
-                if !(x+i == xhole && y+j == yhole && has_hole)
-                    lattice.grid[mod1(x+i, lattice.N), mod1(y+j, lattice.N)] *= -1
-                end
-            end
-        end
+        throw(ArgumentError("Invalid move type"))
     end
+end
+
+function energy_change(lattice::Lattice, flips::Tuple{Vector{Int64}, Vector{Int64}})
+    N = lattice.N
+    ref_grid = deepcopy(lattice.grid)
+    xvals, yvals = flips
+    if length(xvals) != length(yvals)
+        throw(ArgumentError("xvals and yvals must have the same length"))
+    end
+
+    ref_grid[xvals, yvals] .= 0
+    total_energy_change = 0
+    for (x, y) in zip(eachindex(xvals), eachindex(yvals))
+        xval = xvals[x]
+        yval = yvals[y]
+        
+        neighbours = sum([
+            ref_grid[mod1(xval+1, N), yval],  # Right neighbor
+            ref_grid[mod1(xval-1, N), yval],  # Left neighbor
+            ref_grid[xval, mod1(yval+1, N)],  # Top neighbor
+            ref_grid[xval, mod1(yval-1, N)]   # Bottom neighbor
+        ])
+        total_energy_change += -1 * lattice.grid[xval,yval] * neighbours
+    end
+    return total_energy_change
+end
+
+function do_flips(lattice::Lattice, flips::Tuple{Vector{Int64}, Vector{Int64}})
+    xvals, yvals = flips
+    for (x,y) in zip(xvals, yvals)
+        lattice.grid[x,y] *= -1
+    end
+end
+
+function magnetisation(lattice::Lattice)
+    return sum(lattice.grid) / (lattice.N * lattice.N)
 end
