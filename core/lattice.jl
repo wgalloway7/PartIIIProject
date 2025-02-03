@@ -61,7 +61,7 @@ function energy(lattice::Lattice)
             )
         end
     end
-    return total_energy
+    return total_energy / (2 * N^2)
 end
 
 

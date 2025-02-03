@@ -1,4 +1,4 @@
-# main.jl
+# fig1.jl
 using Random
 using Plots
 using Statistics
@@ -7,7 +7,7 @@ using Statistics
 include("lattice.jl")
 include("montecarlo.jl")
 
-N = 50
+N = 10
 lattice = Lattice(N)
 lattice.grid = solved_configuration(N)
 
@@ -55,8 +55,8 @@ function plot_beta_vs_energy(lattice::Lattice, beta_range::Vector{Float64}, k_va
 end
 
 beta_range = collect(range(0.1, 3.0, length = 10))
-k_values = [i for i in 1:20]
-copies = 20
+k_values = [i for i in 1:5]
+copies = 10
 move = "unconstrained k flip"
 filename = "beta_vs_energy.png"
 
