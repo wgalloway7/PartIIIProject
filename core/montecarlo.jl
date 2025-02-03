@@ -15,14 +15,22 @@ function monte_carlo_timestep!(lattice::Lattice, move::String, beta::Float64; ve
 
 end
 
-function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, move::String = "single flip"; maximum_iterations::Int64=1000, configuration_correlation_convergence_criteria::Float64=exp(-1), verbose::Bool=false)
+function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, move::String = "single flip"; maximum_iterations::Int64=1000, configuration_correlation_convergence_criteria::Float64=exp(-1), verbose::Bool=false, use_correlation::Bool=true)
     #need to get rid of candidate_generating_function
     current_iteration = 0
     accepted_candidates = 0
 
     initial_lattice = Lattice(lattice.N)
     initial_lattice.grid = deepcopy(lattice.grid)
-    current_configuration_correlation_function_value = configuration_correlation_function(lattice, initial_lattice)
+    #if we are continuously computing the correlation function we need to compute it here
+    #if we are using predefined cutoff iteration numbers from previously calculated decorrelations
+    #no need to compute it here
+    if use_correlation
+        current_configuration_correlation_function_value = configuration_correlation_function(lattice, initial_lattice)
+
+    else
+        current_configuration_correlation_function_value = 1.0
+    end
 
     while (current_iteration <= maximum_iterations) && (current_configuration_correlation_function_value > configuration_correlation_convergence_criteria)
  
@@ -30,7 +38,11 @@ function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, mov
 
         current_iteration += 1
         accepted_candidates += accepted_candidates_increase
-        current_configuration_correlation_function_value = configuration_correlation_function(lattice, initial_lattice)
+        if use_correlation
+            current_configuration_correlation_function_value = configuration_correlation_function(lattice, initial_lattice)
+        end
+
+        
     end
 
     converged = (current_iteration < maximum_iterations)

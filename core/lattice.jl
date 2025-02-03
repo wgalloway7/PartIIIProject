@@ -75,7 +75,6 @@ function generate_moves(lattice::Lattice, move::String, k::Int64 = 1)
     elseif move == "k chain flip"
         x_0 = rand(1:lattice.N)
         y_0 = rand(1:lattice.N)
-        println(([mod1(x_0 + i, N) for i in 0:k-1], [y_0 for i in 0:k-1]))
         return ([mod1(x_0 + i, N) for i in 0:k-1], [y_0 for i in 0:k-1])
 
 
@@ -127,7 +126,8 @@ function energy_change(lattice::Lattice, flips::Tuple{Vector{Int64}, Vector{Int6
         ])
         total_energy_change += -1 * lattice.grid[xval,yval] * neighbours
     end
-    return total_energy_change
+    #should be mulitplied by J/N^2
+    return total_energy_change / N
 end
 
 function do_flips(lattice::Lattice, flips::Tuple{Vector{Int64}, Vector{Int64}})

@@ -38,12 +38,12 @@ function concatenate_energies(lattice::Lattice, copies::Int64, beta_values::Vect
     return mean(hcat(energy_runs...), dims=2)[:]
 end
 
-beta_values = 1 ./ generate_T_intervals(5.0,0.01, 50)
+beta_values = 1 ./ generate_T_intervals(5.0,0.01, 5)
 scatter(1 ./ beta_values)
 scatter(beta_values)
 
 
-k_values = [i for i in 1:5]
+k_values = [i for i in 1:3]
 copies = 50
 filename = "test.png"
 
