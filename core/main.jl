@@ -2,6 +2,8 @@ using Random
 using Plots
 using Statistics
 using DelimitedFiles
+using Pkg
+using LsqFit
 include("lattice.jl")
 include("montecarlo.jl")
 
@@ -58,10 +60,9 @@ end
 
 
 
-function figure_correlation_decay(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, filename::String, max_measurement_iterations::Int64, m::Int64, cooling_time::Int64 = 1000, move::String = "single flip")
+function figure_correlation_decay(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, filename::String, max_measurement_iterations::Int64, m::Int64, cooling_time::Int64 = 1000, move::String = "single flip", do_plot = true)
     colors = cgrad(:RdBu, length(beta_values))
-    p = plot()
-    plot!(p, background_color="#333333", gridcolor=:white, legend=:topright)
+    
     
     # Initialize storage for correlation histories
     correlation_histories = [ [] for _ in beta_values ]
@@ -79,12 +80,17 @@ function figure_correlation_decay(lattice::Lattice, beta_values::Vector{Float64}
     averaged_correlations = [ mean(reduce(hcat, runs), dims=2)[:] for runs in correlation_histories ]
 
     # Plot results
-    for (i, beta) in enumerate(beta_values)
-        plot!(p, averaged_correlations[i], label="β = $beta", color=colors[i])
-    end
+    if do_plot
+        p = plot()
+        plot!(p, background_color="#333333", gridcolor=:white, legend=:topright)
+        for (i, beta) in enumerate(beta_values)
+            plot!(p, averaged_correlations[i], label="β = $beta", color=colors[i])
+        end
+    
 
-    savefig(p, filename)
-    return correlation_histories
+        savefig(p, filename)
+    end
+    return averaged_correlations
 end
 
 N = 50
@@ -95,5 +101,32 @@ beta_values = 1 ./ generate_T_intervals(10.0, 0.8, 6)
 filename = "hmmm.png"
 m = 10
 
-figure_correlation_decay(lattice, beta_values, 1, filename, 10000, m, 10000, "single flip")
+#figure_correlation_decay(lattice, beta_values, 1, filename, 10000, m, 10000, "single flip")
 
+
+
+function fit_VTM(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, move::String = "single flip", max_measurement_iterations::Int64 = 1000, cooling_time::Int64 = 1000, m::Int64=1)
+    averaged_correlations = figure_correlation_decay(lattice, beta_values, k, "VTM.png", max_measurement_iterations, m, cooling_time, move, true)
+    # Fit the VTM
+    # VTM: C(t) = A * exp(-(t/tau)^beta) + C
+
+    function VTM(t,A,tau,beta,C)
+        return A * exp.(-(t ./ tau) .^ beta) .+ C
+    end
+
+    y_data = averaged_correlations[1]
+    x_data = Float64.(1:length(y_data))
+
+    initial_params = [1.0, 1000.0, 1.0,0.0]
+
+    fit = curve_fit(VTM, x_data, y_data, initial_params)
+    fitted_params = fit.param
+    p = plot()
+    plot!(p, x_data, y_data, label="Data", linewidth=2)
+    plot!(x_data, VFT.(x_data, fitted_params...), label="Fitted Curve", linewidth=2, linestyle=:dash)
+    savefig(p, "VTM_fit.png")
+end
+
+
+fit_VTM(lattice, beta_values, 1, "single flip", 2500, 10000, 10)
+    
