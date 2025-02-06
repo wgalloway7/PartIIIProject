@@ -1,0 +1,1 @@
+Note these images were obtained with energy change scaled by 1/N - no reason for this, but explains the order of beta at the transition
