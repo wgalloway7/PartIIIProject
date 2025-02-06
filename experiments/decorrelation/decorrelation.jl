@@ -1,3 +1,6 @@
+#old program
+# can just do include main.jl
+# generates decorrelation numbers, produces csv and figure
 using Random
 using Plots
 using Statistics
