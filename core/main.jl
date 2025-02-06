@@ -55,17 +55,45 @@ function figure_E_anneal(lattice::Lattice, beta_values::Vector{Float64}, k_value
 end
 
 
-N = 10
+
+
+
+function figure_correlation_decay(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, filename::String, max_measurement_iterations::Int64, m::Int64, cooling_time::Int64 = 1000, move::String = "single flip")
+    colors = cgrad(:RdBu, length(beta_values))
+    p = plot()
+    plot!(p, background_color="#333333", gridcolor=:white, legend=:topright)
+    
+    # Initialize storage for correlation histories
+    correlation_histories = [ [] for _ in beta_values ]
+
+    # Run multiple instances and collect data
+    # m instances
+    for _ in 1:m
+        correlations_beta = generate_correlations(lattice, beta_values, k, move, max_measurement_iterations, cooling_time)
+        for (i, corr_history) in enumerate(correlations_beta)
+            push!(correlation_histories[i], corr_history)  # Store runs
+        end
+    end
+
+    # Compute mean correlation decay for each beta
+    averaged_correlations = [ mean(reduce(hcat, runs), dims=2)[:] for runs in correlation_histories ]
+
+    # Plot results
+    for (i, beta) in enumerate(beta_values)
+        plot!(p, averaged_correlations[i], label="β = $beta", color=colors[i])
+    end
+
+    savefig(p, filename)
+    return correlation_histories
+end
+
+N = 50
 lattice = Lattice(N)
 lattice.grid = solved_configuration(N)
 
+beta_values = 1 ./ generate_T_intervals(10.0, 0.8, 6)
+filename = "hmmm.png"
+m = 10
 
-beta_values = 1 ./ generate_T_intervals(10.0, 0.5, 10)
-k_values = [i for i in 1:2]
-copies = 2
-filename = "test3.png"
-datafile = "energies.csv"
-folder = "energies"
+figure_correlation_decay(lattice, beta_values, 1, filename, 10000, m, 10000, "single flip")
 
-figure_E_anneal(lattice, beta_values, k_values, copies, filename, datafile, folder, N, "single flip")
-println("done")

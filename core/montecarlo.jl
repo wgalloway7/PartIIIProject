@@ -121,3 +121,33 @@ function generate_T_intervals(T_hot::Float64, T_cold::Float64, num_intervals::In
     end
     return T_hot .* (T_cold / T_hot) .^ (range(0, 1, length=num_intervals))
 end
+
+
+function generate_correlations(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, move::String = "single flip", max_measurement_iterations::Int64 = 1000, cooling_time::Int64 = 1000)
+    # prepare lattice in a 'hot' state
+    #TO DO: take average of multiple runs
+    prepare_lattice!(lattice, k)
+    correlations_beta = []
+    # for each beta value
+    for beta in beta_values
+        # cool to beta
+        run_metropolis_algorithm(lattice, beta, k, move, use_correlation = true, maximum_iterations = cooling_time)
+        current_iteration = 0
+        correlation_history = []
+        # making reference lattice to calculate correlation function from
+        ref_lattice = Lattice(lattice.N)
+        ref_lattice.grid = deepcopy(lattice.grid)
+        while current_iteration < max_measurement_iterations
+            # run metropolis algorithm for 1000 iterations
+            # calculate correlation function and add to history array
+            push!(correlation_history, configuration_correlation_function(lattice, ref_lattice))
+            monte_carlo_timestep!(lattice, move, beta, k = k)
+            current_iteration += 1
+        #break after max_measurement_iterations
+        end
+        push!(correlations_beta, correlation_history)
+    end
+    return correlations_beta
+end
+
+    
