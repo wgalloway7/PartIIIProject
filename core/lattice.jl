@@ -237,42 +237,40 @@ function explore_moves(lattice::Lattice, k::Int64, move::String)
     else
         throw(ArgumentError("Invalid move type"))
     end
-    println("aaaa")
-    println(moves)
+
 
     
-    up_down = []
     # if energy change of proposed move is negative, add -1 to up_down
     # if energy change is positive, add 1 to down_up
+    saddles = 0
     for move in moves
-        println(move)
         move_energy_change = energy_change(lattice, move)
-        println(move_energy_change)
         if move_energy_change < 0
-            push!(up_down, -1)
-        elseif move_energy_change > 0
-            push!(up_down, 1)
+            saddles += 1
         end
     end
-
-    # if there are both positive and negative energy changes
-    # we have a saddle point
-    if 1 in up_down && -1 in up_down
-        return 0
-    elseif  (1 in up_down) && !(-1 in up_down)    
-        return 1
-    # maximum
-    elseif  !(1 in up_down) && (-1 in up_down)
-        return -1
-    end
+    return saddles
+    
 end
 
 N = 4
 lattice = Lattice(N)
-lattice.grid = random_configuration(N, 0.0)
 move = "single flip"
 k = 1
-for i in 1:N
-    println(lattice.grid[i,:])
-end
-explore_moves(lattice, k, move)
+
+
+
+lattice.grid = random_configuration(N, (2*rand()-1))
+println(lattice.grid)
+println(explore_moves(lattice, k, move))
+println(energy(lattice))
+
+
+
+
+
+
+
+
+
+
