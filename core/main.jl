@@ -105,28 +105,41 @@ m = 10
 
 
 
-function fit_VTM(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, move::String = "single flip", max_measurement_iterations::Int64 = 1000, cooling_time::Int64 = 1000, m::Int64=1)
-    averaged_correlations = figure_correlation_decay(lattice, beta_values, k, "VTM.png", max_measurement_iterations, m, cooling_time, move, true)
+function fit_VTM(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, filename::String, folder::String, datafile::String, move::String = "single flip", max_measurement_iterations::Int64 = 1000, cooling_time::Int64 = 1000, m::Int64=1, output::Bool = true)
+    averaged_correlations = figure_correlation_decay(lattice, beta_values, k, "VTM.png", max_measurement_iterations, m, cooling_time, move, false)
     # Fit the VTM
     # VTM: C(t) = A * exp(-(t/tau)^beta) + C
 
-    function VTM(t,A,tau,beta,C)
-        return A * exp.(-(t ./ tau) .^ beta) .+ C
+    function VTM(t, p)
+        A, tau, alpha, C = p
+        return A.* exp.(-(t ./ tau) .^ alpha) .+ C
     end
-
-    y_data = averaged_correlations[1]
-    x_data = Float64.(1:length(y_data))
-
-    initial_params = [1.0, 1000.0, 1.0,0.0]
-
-    fit = curve_fit(VTM, x_data, y_data, initial_params)
-    fitted_params = fit.param
     p = plot()
-    plot!(p, x_data, y_data, label="Data", linewidth=2)
-    plot!(x_data, VFT.(x_data, fitted_params...), label="Fitted Curve", linewidth=2, linestyle=:dash)
-    savefig(p, "VTM_fit.png")
+    plot!(p, background_color="#333333", gridcolor=:white, legend=:topright)
+    colors = cgrad(:RdBu, length(beta_values))
+    params = []
+    for (i,beta) in enumerate(beta_values)
+        y_data = averaged_correlations[i]
+        x_data = Float64.(1:length(y_data))
+
+        initial_params = [1.0, 1000.0, 1.0,0.0]
+
+        fit = curve_fit(VTM, x_data, y_data, initial_params)
+        fitted_params = fit.param
+        push!(params, vcat(fitted_params, beta))
+        tau = round(fitted_params[2])
+        alpha = round(fitted_params[3], digits=2)
+        beta_round = round(beta, digits = 2)
+
+        plot!(p, x_data, y_data, label="beta = $beta_round", linewidth=2, color = colors[i])
+        plot!(p, x_data, [VTM(t, fitted_params) for t in x_data], label="fit, tau = $tau, alpha = $alpha", linewidth=2, linestyle=:dash, color = "blue")
+        xlabel!(p,"Iterations (t)", xlabelcolor = :white)
+        ylabel!(p,"Autocorrelation C(t)", ylabelcolor = :white)
+        title!(p,"VTM fit for $move, k = $k", titlecolor = :white)
+
+    end
+    savefig(p, joinpath(folder, filename))
+    writedlm(joinpath(folder, datafile), hcat(params...), ',')
+
+    return params
 end
-
-
-fit_VTM(lattice, beta_values, 1, "single flip", 2500, 10000, 10)
-    

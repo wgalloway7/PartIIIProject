@@ -21,3 +21,4 @@ filename = "hmmm.png"
 m = 10
 
 figure_correlation_decay(lattice, beta_values, 1, filename, 10000, m, 10000, "single flip")
+println("done")
