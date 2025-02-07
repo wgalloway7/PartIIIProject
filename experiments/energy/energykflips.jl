@@ -10,23 +10,24 @@ include("../../core/lattice.jl")
 include("../../core/montecarlo.jl")
 include("../../core/main.jl")
 
-N = 10
+N = 20
 lattice = Lattice(N)
 lattice.grid = solved_configuration(N)
 
 
-beta_values = 1 ./ generate_T_intervals(10.0, 0.5, 10)
-k_values = [i for i in 1:3]
-copies = 1
+beta_values = 1 ./ generate_T_intervals(10.0, 0.5, 100)
+k_values = [i for i in 1:7]
+copies = 100
 root = "kenergy"
 folder = "experiments\\energy"
 
 
 moves = ["k chain flip", "k line flip", "unconstrained k flip"]
-figure_E_anneal(lattice, beta_values, k_values, copies, filename, datafile, folder, N, "single flip")
 
 for move in moves
-    filename =  move* "_" * root * ".png"
-    datafile = move * "_" * root * ".csv"
-    figure_E_anneal(lattice, beta_values, k_values, copies, filename, datafile, folder, N, move)
+    file_name =  move* "_" * root * ".png"
+    data_file = move * "_" * root * ".csv"
+    figure_E_anneal(lattice, beta_values, k_values, copies, file_name, data_file, folder, N, move)
+    println("Finished $move")
 end
+println("Finished all")

@@ -253,18 +253,6 @@ function explore_moves(lattice::Lattice, k::Int64, move::String)
     
 end
 
-N = 4
-lattice = Lattice(N)
-move = "single flip"
-k = 1
-
-
-
-lattice.grid = random_configuration(N, (2*rand()-1))
-println(lattice.grid)
-println(explore_moves(lattice, k, move))
-println(energy(lattice))
-
 
 
 
