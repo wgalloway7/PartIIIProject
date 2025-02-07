@@ -1,7 +1,8 @@
 #lattice.jl
 using Random
 using LinearAlgebra
-using Distributions 
+using Distributions
+using Combinatorics
 
 mutable struct Lattice
     #configuration of Lattice (2D array of binary spins)
@@ -181,3 +182,97 @@ end
 function magnetisation(lattice::Lattice)
     return sum(lattice.grid) / (lattice.N * lattice.N)
 end
+
+
+function explore_moves(lattice::Lattice, k::Int64, move::String)
+    moves = []
+
+    if move == "single flip"
+        for i in 1:lattice.N
+            for j in 1:lattice.N
+                push!(moves, ( [i], [j] ))
+            end
+        end    
+
+    elseif move == "k chain flip"
+        for y in 1:lattice.N
+            for x in 1:(lattice.N - k + 1)
+                x_coords::Vector{Int64} = []
+                y_coords::Vector{Int64} = []
+                for i in 1:k
+                    push!(x_coords, mod1(x + i - 1, lattice.N))
+                    push!(y_coords, y)
+                end
+                push!(moves, (x_coords, y_coords))
+            end
+        end
+
+    elseif move == "k line flip"
+        for y in 1:lattice.N
+            for comb in combinations(1:lattice.N, k)
+                x_coords::Vector{Int64} = []
+                y_coords::Vector{Int64} = []
+                for x in comb
+                    push!(x_coords, x)
+                    push!(y_coords, y)
+                end
+                push!(moves, (x_coords, y_coords))
+            end
+        end
+    
+    elseif move == "unconstrained k flip"
+        indices = [(i, j) for i in 1:lattice.N, j in 1:lattice.N]
+        for comb in combinations(indices, k)
+            x_coords::Vector{Int64} = []
+            y_coords::Vector{Int64} = []
+            for (i, j) in comb
+                push!(x_coords, i)
+                push!(y_coords, j)
+            end
+            push!(moves, (x_coords, y_coords))
+        end
+
+
+
+    else
+        throw(ArgumentError("Invalid move type"))
+    end
+    println("aaaa")
+    println(moves)
+
+    
+    up_down = []
+    # if energy change of proposed move is negative, add -1 to up_down
+    # if energy change is positive, add 1 to down_up
+    for move in moves
+        println(move)
+        move_energy_change = energy_change(lattice, move)
+        println(move_energy_change)
+        if move_energy_change < 0
+            push!(up_down, -1)
+        elseif move_energy_change > 0
+            push!(up_down, 1)
+        end
+    end
+
+    # if there are both positive and negative energy changes
+    # we have a saddle point
+    if 1 in up_down && -1 in up_down
+        return 0
+    elseif  (1 in up_down) && !(-1 in up_down)    
+        return 1
+    # maximum
+    elseif  !(1 in up_down) && (-1 in up_down)
+        return -1
+    end
+end
+
+N = 4
+lattice = Lattice(N)
+lattice.grid = random_configuration(N, 0.0)
+move = "single flip"
+k = 1
+for i in 1:N
+    println(lattice.grid[i,:])
+end
+explore_moves(lattice, k, move)
