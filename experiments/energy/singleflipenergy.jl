@@ -10,7 +10,7 @@ include("../../core/lattice.jl")
 include("../../core/montecarlo.jl")
 include("../../core/main.jl")
 
-N = 10
+N = 100
 lattice = Lattice(N)
 lattice.grid = solved_configuration(N)
 
