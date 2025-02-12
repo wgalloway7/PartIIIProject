@@ -109,10 +109,13 @@ function fit_VTM(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, filen
     averaged_correlations = figure_correlation_decay(lattice, beta_values, k, "VTM.png", max_measurement_iterations, m, cooling_time, move, false)
     # Fit the VTM
     # VTM: C(t) = A * exp(-(t/tau)^beta) + C
+    # C(t = infinity) = 0
+    # C(t = 0) = 1
+    # So A = 1, C = 0
 
     function VTM(t, p)
-        A, tau, alpha, C = p
-        return A.* exp.(-(t ./ tau) .^ alpha) .+ C
+        tau, alpha = p
+        return exp.(-(t ./ tau) .^ alpha)
     end
     p = plot()
     plot!(p, background_color="#333333", gridcolor=:white, legend=:topright)
@@ -122,13 +125,13 @@ function fit_VTM(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, filen
         y_data = averaged_correlations[i]
         x_data = Float64.(1:length(y_data))
 
-        initial_params = [1.0, 1000.0, 1.0,0.0]
+        initial_params = [1000.0, 1.0]
 
         fit = curve_fit(VTM, x_data, y_data, initial_params)
         fitted_params = fit.param
         push!(params, vcat(fitted_params, beta))
-        tau = round(fitted_params[2])
-        alpha = round(fitted_params[3], digits=2)
+        tau = round(fitted_params[1])
+        alpha = round(fitted_params[2], digits=2)
         beta_round = round(beta, digits = 2)
 
         plot!(p, x_data, y_data, label="beta = $beta_round", linewidth=2, color = colors[i])
