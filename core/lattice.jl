@@ -14,7 +14,7 @@ mutable struct Lattice
 end
 
 
-function solved_configuration(N::Int64)
+@inline function solved_configuration(N::Int64)
     # minimal energy state
     # all spins aligned
     # acessilbe assuming ergodic
@@ -45,12 +45,8 @@ function configuration_correlation_function(lattice_configuration::Matrix{Int64}
     # calculates correlation function given lattice and reference lattice
 
 
-    if size(lattice_configuration) != size(reference_lattice_configuration)
-        throw(ArgumentError("Reference lattice has different size from current lattice"))
-    end
-
     match_count = sum(lattice_configuration .== reference_lattice_configuration)
-    total_sites = prod(size(lattice_configuration))
+    total_sites = lattice.N ^ 2
     
     #normalising
     return match_count/ total_sites
@@ -63,19 +59,12 @@ function energy(lattice::Lattice)
     N = lattice.N
     grid = lattice.grid
     total_energy = 0
-    # currently O(N^2)
-    # could be vectorised by operating shifts directly on lattice
-    # larger space complexity but smaller time complexity
-    for i in 1:N
-        for j in 1:N
-            total_energy += grid[i, j] * (
-                grid[mod1(i+1, N), j] +  # Right neighbor
-                grid[mod1(i-1, N), j] +  # Left neighbor
-                grid[i, mod1(j+1, N)] +  # Top neighbor
-                grid[i, mod1(j-1, N)]    # Bottom neighbor
-            )
-        end
-    end
+    # vectorised energy calculation
+    right = circshift(grid, (1, 0))
+    left = circshift(grid, (-1, 0))
+    up = circshift(grid, (0, 1))
+    down = circshift(grid, (0, -1))
+    total_energy = sum(grid .* (right + left + up + down))
     return total_energy / (2 * N^2)
 end
 
@@ -103,11 +92,11 @@ function generate_moves(lattice::Lattice, move::String, k::Int64 = 1)
         # randomly select a line
         y = rand(1:lattice.N)
         # within line randomly select k sites
-        return (rand(1:lattice.N,k), [y for i in 1:k],)
+        return (rand(1:N, k), fill(y, k))
       
     elseif move == "unconstrained k flip"
         # randomly select k sites
-        return (rand(1:lattice.N,k), rand(1:lattice.N,k))
+        return (rand(1:N, k), rand(1:N, k))
         
     elseif move == "k square flip"
         # randomly select an initial site
@@ -133,10 +122,10 @@ function generate_moves(lattice::Lattice, move::String, k::Int64 = 1)
     end
 end
 
-function energy_change(lattice::Lattice, flips::Tuple{Vector{Int64}, Vector{Int64}})
+@inline function energy_change(lattice::Lattice, flips::Tuple{Vector{Int64}, Vector{Int64}})
     N = lattice.N
     # copy of lattice to mask with proposed flips
-    ref_grid = deepcopy(lattice.grid)
+    ref_grid = copy(lattice.grid)
     # unpack proposed flips
     xvals, yvals = flips
 
@@ -151,18 +140,19 @@ function energy_change(lattice::Lattice, flips::Tuple{Vector{Int64}, Vector{Int6
     # so by masking we acknowledge that the energy change is 0
     ref_grid[xvals, yvals] .= 0
     total_energy_change = 0
-    for (x, y) in zip(eachindex(xvals), eachindex(yvals))
+    @inbounds for (x, y) in zip(eachindex(xvals), eachindex(yvals))
         xval = xvals[x]
         yval = yvals[y]
         # calculating sum of neighbours for proposed sites
         # note periodic boundary conditions
 
-        neighbours = sum([
-            ref_grid[mod1(xval+1, N), yval],  # Right neighbor
-            ref_grid[mod1(xval-1, N), yval],  # Left neighbor
-            ref_grid[xval, mod1(yval+1, N)],  # Top neighbor
-            ref_grid[xval, mod1(yval-1, N)]   # Bottom neighbor
-        ])
+        @inbounds begin
+            local n1 = ref_grid[mod1(xval+1, N), yval]
+            local n2 = ref_grid[mod1(xval-1, N), yval]
+            local n3 = ref_grid[xval, mod1(yval+1, N)]
+            local n4 = ref_grid[xval, mod1(yval-1, N)]
+            neighbours = n1 + n2 + n3 + n4
+        end
         total_energy_change += -1 * lattice.grid[xval,yval] * neighbours
     end
     # / N completely arbitrary, just shifts temperature scale
@@ -174,7 +164,7 @@ function do_flips(lattice::Lattice, flips::Tuple{Vector{Int64}, Vector{Int64}})
     # flip the spins of these sites
     # same site might be flipped multiple times?
     xvals, yvals = flips
-    for (x,y) in zip(xvals, yvals)
+    @inbounds for (x,y) in zip(xvals, yvals)
         lattice.grid[x,y] *= -1
     end
 end

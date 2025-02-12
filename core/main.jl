@@ -1,3 +1,4 @@
+#main.jl
 using Random
 using Plots
 using Statistics

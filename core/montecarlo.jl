@@ -1,7 +1,7 @@
 #montecarlo.jl
 include("lattice.jl")
 
-function monte_carlo_timestep!(lattice::Lattice, move::String, beta::Float64; verbose::Bool=false, energy_cap::Float64=0.0, k::Int64=1)
+@inline function monte_carlo_timestep!(lattice::Lattice, move::String, beta::Float64; verbose::Bool=false, k::Int64=1)
     # generates potential move's flip sites
     flips = generate_moves(lattice, move, k)
 
@@ -28,7 +28,7 @@ function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, mov
     accepted_candidates = 0
 
     initial_lattice = Lattice(lattice.N)
-    initial_lattice.grid = deepcopy(lattice.grid)
+    initial_lattice.grid = copy(lattice.grid)
     #if we are continuously computing the correlation function we need to compute it here
     #if we are using predefined cutoff iteration numbers from previously calculated decorrelations
     #no need to compute it here
@@ -136,7 +136,7 @@ function generate_correlations(lattice::Lattice, beta_values::Vector{Float64}, k
         correlation_history = []
         # making reference lattice to calculate correlation function from
         ref_lattice = Lattice(lattice.N)
-        ref_lattice.grid = deepcopy(lattice.grid)
+        ref_lattice.grid = copy(lattice.grid)
         while current_iteration < max_measurement_iterations
             # run metropolis algorithm for 1000 iterations
             # calculate correlation function and add to history array
