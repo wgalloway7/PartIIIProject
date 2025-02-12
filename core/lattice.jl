@@ -124,8 +124,7 @@ end
 
 @inline function energy_change(lattice::Lattice, flips::Tuple{Vector{Int64}, Vector{Int64}})
     N = lattice.N
-    # copy of lattice to mask with proposed flips
-    ref_grid = copy(lattice.grid)
+    
     # unpack proposed flips
     xvals, yvals = flips
 
@@ -138,22 +137,18 @@ end
     # doesn't change their interaction energy
     # ie +1,+1 has same energy as -1,-1
     # so by masking we acknowledge that the energy change is 0
-    ref_grid[xvals, yvals] .= 0
+    flip_set = Set(zip(xvals,yvals))
     total_energy_change = 0
-    @inbounds for (x, y) in zip(eachindex(xvals), eachindex(yvals))
-        xval = xvals[x]
-        yval = yvals[y]
-        # calculating sum of neighbours for proposed sites
-        # note periodic boundary conditions
-
-        @inbounds begin
-            local n1 = ref_grid[mod1(xval+1, N), yval]
-            local n2 = ref_grid[mod1(xval-1, N), yval]
-            local n3 = ref_grid[xval, mod1(yval+1, N)]
-            local n4 = ref_grid[xval, mod1(yval-1, N)]
-            neighbours = n1 + n2 + n3 + n4
+    @inbounds for (x, y) in zip(xvals, yvals)
+        local sum_neighbours = 0
+        for (dx,dy) in ((1,0),(-1,0),(0,1),(0,-1))
+            xp = mod1(x+dx, N)
+            yp = mod1(y+dy, N)
+            if (xp,yp) ∉ flip_set
+                sum_neighbours += lattice.grid[xp,yp]
+            end
         end
-        total_energy_change += -1 * lattice.grid[xval,yval] * neighbours
+        total_energy_change += -lattice.grid[x, y] * sum_neighbours
     end
     # / N completely arbitrary, just shifts temperature scale
     return total_energy_change

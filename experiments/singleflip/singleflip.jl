@@ -4,6 +4,7 @@ using Plots
 using Statistics
 using DelimitedFiles
 using Dates
+using Profile, ProfileView
 
 include("../../core/lattice.jl")
 include("../../core/montecarlo.jl")
@@ -17,19 +18,22 @@ function generate_single_flip_energy_runs(lattice::Lattice, copies::Int64, beta_
 end
 
  
-N = 50
+N = 100
 lattice = Lattice(N)
 lattice.grid = solved_configuration(N)
-beta_values = 1 ./ generate_T_intervals(10.0, 0.25, 200)
+beta_values = 1 ./ generate_T_intervals(10.0, 0.25, 100)
 copies = 50
 
 
 datafile = "single_flips.csv"
 folder = "experiments\\singleflip"
 
-println("S")
+
+
 time = now()
-energy_runs = generate_single_flip_energy_runs(lattice, copies, beta_values)
-writedlm(joinpath(folder, datafile), energy_runs, ',')
+
+results = generate_single_flip_energy_runs(lattice, copies, beta_values)
+writedlm(joinpath(folder, datafile), results, ',')
 println(now() - time)
+
 

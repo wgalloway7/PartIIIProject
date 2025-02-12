@@ -1,6 +1,7 @@
 #montecarlo.jl
 include("lattice.jl")
 
+
 @inline function monte_carlo_timestep!(lattice::Lattice, move::String, beta::Float64; verbose::Bool=false, k::Int64=1)
     # generates potential move's flip sites
     flips = generate_moves(lattice, move, k)
