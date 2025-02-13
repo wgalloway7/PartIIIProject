@@ -32,7 +32,7 @@ folder = "experiments\\singleflip"
 
 time = now()
 
-results = generate_single_flip_energy_runs(lattice, copies, beta_values)
+results = generate_single_flip_energy_runs(lattice, copies, beta_values,2)
 writedlm(joinpath(folder, datafile), results, ',')
 println(now() - time)
 

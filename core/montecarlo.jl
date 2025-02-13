@@ -154,7 +154,7 @@ function generate_correlations(lattice::Lattice, beta_values::Vector{Float64}, k
 end
 
     
-function generate_saddles(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, move::String = "single flip", cooling_time::Int64 = 10000)
+function generate_saddles_run(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, move::String = "single flip", cooling_time::Int64 = 10000)
     # prepare lattice in a 'hot state'
     # for each beta
     # cool to beta using single spin flips
@@ -171,7 +171,32 @@ function generate_saddles(lattice::Lattice, beta_values::Vector{Float64}, k::Int
     for beta in beta_values
         run_metropolis_algorithm(lattice, beta, k, "single flip", use_correlation = true, maximum_iterations = cooling_time)
         push!(energy_values, energy(lattice))
-        push!(saddle_values,explore_moves(lattice, k, move))
+        saddles = explore_moves(lattice, k, move)
+        push!(saddle_values,saddles)
+    end
+    return (saddle_values, energy_values, beta_values)
+end
+
+function generate_saddles(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, move::String,  m::Int64 = 1, cooling_time::Int64 = 10000)
+    # generate multiple runs of saddle points
+    # and return the average saddle point
+    # and energy values
+    saddle_values = []
+    energy_values = []
+    beta_vals = []
+
+   # to use threads?
+    for j in 1:m
+         #add noise to beta values
+        noisy_beta_values = beta_values .+ randn(length(beta_values)) .* 0.1 .* beta_values
+        #println(beta_values)
+        #println(noisy_beta_values)
+        (saddles, energies, betas) = generate_saddles_run(lattice, noisy_beta_values, k, move, cooling_time)
+        push!(saddle_values, saddles)
+        push!(energy_values, energies)
+        push!(beta_vals, betas)
+        println("run = $j")
+        
     end
     return (saddle_values, energy_values, beta_values)
 end
