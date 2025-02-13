@@ -154,3 +154,24 @@ function generate_correlations(lattice::Lattice, beta_values::Vector{Float64}, k
 end
 
     
+function generate_saddles(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, move::String = "single flip", cooling_time::Int64 = 10000)
+    # prepare lattice in a 'hot state'
+    # for each beta
+    # cool to beta using single spin flips
+    # once cooled, explore moves, calculate energy of system
+
+    prepare_lattice!(lattice)
+    # we could also use the decorrelation_n here
+    # to determine how many iterations it takes to cool?
+    # make sure we're starting hot (low beta)
+    beta_values = sort(copy(beta_values))
+    saddle_values = Int64[]
+    energy_values = Float64[]
+
+    for beta in beta_values
+        run_metropolis_algorithm(lattice, beta, k, "single flip", use_correlation = true, maximum_iterations = cooling_time)
+        push!(energy_values, energy(lattice))
+        push!(saddle_values,explore_moves(lattice, k, move))
+    end
+    return (saddle_values, energy_values, beta_values)
+end

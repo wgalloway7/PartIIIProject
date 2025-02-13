@@ -70,6 +70,8 @@ end
 
 
 function generate_moves(lattice::Lattice, move::String, k::Int64 = 1)
+    #TO DO:
+    #STOP duplicates being generated
     # generate candidate site for flip moves
     # based on move type
     # returns tuple of x and y coordinates
@@ -92,11 +94,13 @@ function generate_moves(lattice::Lattice, move::String, k::Int64 = 1)
         # randomly select a line
         y = rand(1:lattice.N)
         # within line randomly select k sites
-        return (rand(1:N, k), fill(y, k))
+        return (sample(1:N, k, replace=false), fill(y, k))
       
     elseif move == "unconstrained k flip"
         # randomly select k sites
-        return (rand(1:N, k), rand(1:N, k))
+        x_sites = sample(1:N, k, replace=false)
+        y_sites = sample(1:N, k, replace=false)
+        return (x_sites, y_sites)
         
     elseif move == "k square flip"
         # randomly select an initial site
@@ -173,67 +177,43 @@ function explore_moves(lattice::Lattice, k::Int64, move::String)
     moves = []
 
     if move == "single flip"
-        for i in 1:lattice.N
-            for j in 1:lattice.N
-                push!(moves, ( [i], [j] ))
-            end
-        end    
+        moves = [([i], [j]) for i in 1:lattice.N, j in 1:lattice.N]   
 
     elseif move == "k chain flip"
         for y in 1:lattice.N
             for x in 1:(lattice.N - k + 1)
-                x_coords::Vector{Int64} = []
-                y_coords::Vector{Int64} = []
-                for i in 1:k
-                    push!(x_coords, mod1(x + i - 1, lattice.N))
-                    push!(y_coords, y)
-                end
+                x_coords = [(x + i - 1) % lattice.N + 1 for i in 1:k]
+                y_coords = fill(y, k)
                 push!(moves, (x_coords, y_coords))
             end
         end
 
     elseif move == "k line flip"
         for y in 1:lattice.N
-            for comb in combinations(1:lattice.N, k)
-                x_coords::Vector{Int64} = []
-                y_coords::Vector{Int64} = []
-                for x in comb
-                    push!(x_coords, x)
-                    push!(y_coords, y)
-                end
-                push!(moves, (x_coords, y_coords))
+            for comb in collect(combinations(1:lattice.N, k))  # Avoid lazy evaluation issues
+                push!(moves, (collect(comb), fill(y, k)))
             end
         end
     
     elseif move == "unconstrained k flip"
-        indices = [(i, j) for i in 1:lattice.N, j in 1:lattice.N]
-        for comb in combinations(indices, k)
-            x_coords::Vector{Int64} = []
-            y_coords::Vector{Int64} = []
-            for (i, j) in comb
-                push!(x_coords, i)
-                push!(y_coords, j)
-            end
-            push!(moves, (x_coords, y_coords))
+        indices = [(i, j) for i in 1:lattice.N for j in 1:lattice.N]  # Flatten grid
+        for comb in collect(combinations(indices, k))
+            x_coords, y_coords = unzip(comb)  # Efficient tuple splitting
+            push!(moves, (collect(x_coords), collect(y_coords)))
         end
 
 
 
     else
         throw(ArgumentError("Invalid move type"))
+        return 0
     end
 
 
     
     # if energy change of proposed move is negative, add -1 to up_down
     # if energy change is positive, add 1 to down_up
-    saddles = 0
-    for move in moves
-        move_energy_change = energy_change(lattice, move)
-        if move_energy_change < 0
-            saddles += 1
-        end
-    end
+    saddles = count(move -> energy_change(lattice, move) < 0, moves)
     return saddles
     
 end
