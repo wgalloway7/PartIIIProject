@@ -20,7 +20,7 @@ include("lattice.jl")
 
 end
 
-function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, move::String = "single flip"; maximum_iterations::Int64=1000, configuration_correlation_convergence_criteria::Float64=exp(-0.8), verbose::Bool=false, use_correlation::Bool=true)
+function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, move::String = "single flip"; maximum_iterations::Int64=10000, configuration_correlation_convergence_criteria::Float64=exp(-1.0), verbose::Bool=false, use_correlation::Bool=true)
     # runs metropolis-hastings algorithm
     # for given move funciton, beta and k
     # iteration cutoff either predetermined or until correlation function drops to 1/e
@@ -48,6 +48,8 @@ function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, mov
         current_iteration += 1
         accepted_candidates += accepted_candidates_increase
         #calculate new correlation function after iteration
+        # calculate correlation function every lattice.N^2 iterations
+        # ie 1 Monte-Carlo iteration
         if use_correlation
             current_configuration_correlation_function_value = configuration_correlation_function(lattice, initial_lattice)
         end
@@ -67,7 +69,7 @@ function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, mov
     return (converged, current_configuration_correlation_function_value, current_iteration, accepted_candidates)
 end
 
-function prepare_lattice!(lattice::Lattice,k::Int64 = 1; maximum_iterations::Int64=1000)
+function prepare_lattice!(lattice::Lattice,k::Int64 = 1; maximum_iterations::Int64=10000)
     #prepares lattice in minimal energy state (all aligned)
     #this is an accessible state if system is ergodic
     #then runs metropolis algorithm for beta = 0

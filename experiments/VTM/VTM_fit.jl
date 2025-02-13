@@ -21,7 +21,7 @@ m = 10
 
 root = "VTM_fit"
 folder = "experiments\\VTM"
-moves = ["single flip","k chain flip", "k line flip", "unconstrained k flip"]
+moves = ["single flip"]
 
 for move in moves
     filename =  move* "_" * root * ".png"

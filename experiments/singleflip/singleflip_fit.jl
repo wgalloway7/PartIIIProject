@@ -61,9 +61,10 @@ function figure_C(energy_runs::Vector{Vector{Float64}}, beta_values::Vector{Floa
     title!(p, "Heat capacity from single flip energy runs, N = $N", titlecolor = :white)
     savefig(joinpath(folder, filename))
 end
-N = 100
+N = 200
 beta_values = 1 ./ generate_T_intervals(10.0, 0.25, 100)
-E_runs = readdlm("experiments\\singleflip\\single_flips.csv", ',', Float64)
+#E_runs = readdlm("experiments\\singleflip\\single_flips.csv", ',', Float64)
+E_runs = readdlm("experiments\\singleflip\\single_flips_N50.csv", ',', Float64)
 E_runs_vector = [collect(row) for row in eachrow(E_runs)]
 figure_C(E_runs_vector, beta_values, "C_singleflip.png", "experiments\\singleflip", N)
 

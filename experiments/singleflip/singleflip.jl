@@ -18,14 +18,14 @@ function generate_single_flip_energy_runs(lattice::Lattice, copies::Int64, beta_
 end
 
  
-N = 100
+N = 200
 lattice = Lattice(N)
 lattice.grid = solved_configuration(N)
 beta_values = 1 ./ generate_T_intervals(10.0, 0.25, 100)
-copies = 50
+copies = 10
 
 
-datafile = "single_flips.csv"
+datafile = "single_flips_N50.csv"
 folder = "experiments\\singleflip"
 
 
