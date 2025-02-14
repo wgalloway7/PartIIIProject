@@ -47,11 +47,10 @@ function configuration_correlation_function(lattice_configuration::Matrix{Int64}
 
     match_count = sum(lattice_configuration .== reference_lattice_configuration)
     total_sites = lattice.N ^ 2
-    
-    #normalising
-    return match_count/ total_sites
+    fraction = match_count/ total_sites
+    #uncorrelated fraction 0.5
+    return 2 * (fraction - 0.5) 
 end
-
 function energy(lattice::Lattice)
     # for each lattice sites
     # calculate sum of nearest neighbours

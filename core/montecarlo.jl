@@ -53,9 +53,6 @@ function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, mov
         #if use_correlation
         if use_correlation
             current_configuration_correlation_function_value = configuration_correlation_function(lattice, initial_lattice)
-            println(current_configuration_correlation_function_value)
-            println(current_iteration)
-            println(maximum_iterations)
         end
 
         
@@ -73,7 +70,7 @@ function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, mov
     return (converged, current_configuration_correlation_function_value, current_iteration, accepted_candidates)
 end
 
-function prepare_lattice!(lattice::Lattice,k::Int64 = 1; maximum_iterations::Int64=100)
+function prepare_lattice!(lattice::Lattice,k::Int64 = 1; maximum_iterations::Int64=10000)
     #prepares lattice in minimal energy state (all aligned)
     #this is an accessible state if system is ergodic
     #then runs metropolis algorithm for beta = 0

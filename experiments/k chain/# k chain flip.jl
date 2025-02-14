@@ -25,8 +25,8 @@ move = "k chain flip"
 
 #n_multiplier = [2.0^(i-2) for i in 1:4]
 n_multiplier = [1.0]
-decorrelation_copies = 1
-maximum_iterations = 10
+decorrelation_copies = 10
+maximum_iterations = 1000
 
 file_name_root =  "k chain flip"
 data_file_root = "k chain flip"
