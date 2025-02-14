@@ -20,7 +20,7 @@ include("lattice.jl")
 
 end
 
-function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, move::String = "single flip"; maximum_iterations::Int64=10000, configuration_correlation_convergence_criteria::Float64=exp(-1.0), verbose::Bool=false, use_correlation::Bool=true)
+function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, move::String = "single flip"; maximum_iterations::Int64=10000, configuration_correlation_convergence_criteria::Float64=exp(-1.0), verbose::Bool=false, use_correlation::Bool=false)
     # runs metropolis-hastings algorithm
     # for given move funciton, beta and k
     # iteration cutoff either predetermined or until correlation function drops to 1/e
@@ -39,7 +39,7 @@ function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, mov
     else
         current_configuration_correlation_function_value = 1.0
     end
-
+    config_corr_history = []
     #iterate algorithm until cutoff
     while (current_iteration <= maximum_iterations) && (current_configuration_correlation_function_value > configuration_correlation_convergence_criteria)
  
@@ -52,9 +52,16 @@ function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, mov
         # ie 1 Monte-Carlo iteration
         if use_correlation
             current_configuration_correlation_function_value = configuration_correlation_function(lattice, initial_lattice)
+            push!(config_corr_history, current_configuration_correlation_function_value)
         end
 
         
+    end
+    if use_correlation
+        q = plot()
+        plot!(q, config_corr_history)
+        savefig(q, "config_corr_history $beta.png")
+        println(current_iteration," | ",beta)
     end
 
     converged = (current_iteration < maximum_iterations)
@@ -65,7 +72,6 @@ function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, mov
             printstyled("Maximum Iterations Reached", color = :red)
         end
     end
-
     return (converged, current_configuration_correlation_function_value, current_iteration, accepted_candidates)
 end
 
@@ -84,7 +90,7 @@ function generate_decorrelation_n(lattice::Lattice, beta_values::Vector{Float64}
     for copy_idx in 1:copies
         # prepare lattice in a 'hot' state
         # use single flip
-        prepare_lattice!(lattice)
+        prepare_lattice!(lattice, 1; maximum_iterations = maximum_iterations)
         
     
 
@@ -119,7 +125,7 @@ function generate_energies(lattice::Lattice, beta_values::Vector{Float64}, k::In
     # calculate the total energy of the lattice and store in array
 
     #prepare lattice in hot state
-    prepare_lattice!(lattice, 1)
+    prepare_lattice!(lattice, 1; maximum_iterations = 10000)
     for (i,beta) in enumerate(beta_values)
         run_metropolis_algorithm(lattice, beta, k, move, maximum_iterations = n_correlation[i], use_correlation = false)
         E = energy(lattice)
@@ -144,7 +150,7 @@ end
 function generate_correlations(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, move::String = "single flip", max_measurement_iterations::Int64 = 1000, cooling_time::Int64 = 1000)
     # prepare lattice in a 'hot' state
     #TO DO: take average of multiple runs
-    prepare_lattice!(lattice, k)
+    prepare_lattice!(lattice, k, maximum_iterations = cooling_time)
     correlations_beta = []
     # for each beta value
     for beta in beta_values
@@ -175,7 +181,7 @@ function generate_saddles_run(lattice::Lattice, beta_values::Vector{Float64}, k:
     # cool to beta using single spin flips
     # once cooled, explore moves, calculate energy of system
 
-    prepare_lattice!(lattice)
+    prepare_lattice!(lattice, 1, maximum_iterations = cooling_time)
     # we could also use the decorrelation_n here
     # to determine how many iterations it takes to cool?
     # make sure we're starting hot (low beta)

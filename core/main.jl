@@ -35,14 +35,15 @@ function concatenate_energies(lattice::Lattice, copies::Int64, beta_values::Vect
     return mean(hcat(energy_runs...), dims=2)[:]
 end
 
-function figure_E_anneal(lattice::Lattice, beta_values::Vector{Float64}, k_values::Vector{Int64}, copies::Int64, filename::String, datafile::String, folder::String, N::Int64, move::String = "single flip", decorrelation_copies::Int64 = 1, decorrelation_n_multiplier::Int64 = 1)
+function figure_E_anneal(lattice::Lattice, beta_values::Vector{Float64}, k_values::Vector{Int64}, copies::Int64, filename::String, datafile::String, folder::String, N::Int64, move::String = "single flip", decorrelation_copies::Int64 = 1, decorrelation_n_multiplier::Int64 = 1,maximum_iterations::Int64 = 10000)
     colors = cgrad(:RdBu, length(k_values))  # Set1 is a color palette with distinct colors
     p = plot()
     plot!(p, background_color = "#333333", gridcolor = :white, legend=:topright)
     
     all_data = []  # Store data for writing to file
     #generate decorrelation n for single flip ie k =1
-    n_correlation = generate_decorrelation_n(lattice, beta_values; k=1, move="single flip", maximum_iterations=10000, copies =decorrelation_copies) .* decorrelation_n_multiplier
+    n_correlation = generate_decorrelation_n(lattice, beta_values; k=1, move="single flip", maximum_iterations=maximum_iterations, copies =decorrelation_copies) .* decorrelation_n_multiplier
+    println(n_correlation)
     for (i, k) in enumerate(k_values)
         avg_energies = concatenate_energies(lattice, copies, beta_values, k, n_correlation, move)
         push!(all_data, avg_energies)
