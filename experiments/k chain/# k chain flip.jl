@@ -5,6 +5,7 @@ using Random
 using Plots
 using Statistics
 using DelimitedFiles
+using Dates
 
 include("../../core/lattice.jl")
 include("../../core/montecarlo.jl")
@@ -16,19 +17,30 @@ lattice.grid = solved_configuration(N)
 
 
 beta_values = 1 ./ generate_T_intervals(10.0, 0.5, 10)
-k_values = [i for i in 1:3]
+k_values = [i for i in 1:9]
 copies = 10
 folder = "experiments\\k chain"
 
 move = "k chain flip"
 
+#n_multiplier = [2.0^(i-2) for i in 1:4]
+n_multiplier = [1.0]
+decorrelation_copies = 1
+maximum_iterations = 10
 
-file_name =  "k chain flip.png"
-data_file = "k chain flip.csv"
-n_multiplier = 1
+file_name_root =  "k chain flip"
+data_file_root = "k chain flip"
 
-decorrelation_copies = 10
-time = now()
-figure_E_anneal(lattice, beta_values, k_values, copies, file_name, data_file, folder, N, move, decorrelation_copies, n_multiplier)
-println(now() - time)
+
+for n in n_multiplier
+    time_now = now()
+    file_name = file_name_root * "n = $n.png"
+    data_file = data_file_root * "n = $n.csv"
+
+    figure_E_anneal(lattice, beta_values, k_values, copies, file_name, data_file, folder, N, move, decorrelation_copies,n,maximum_iterations)
+    println(now() - time_now)
+end
+
+
+
 println("Finished all")
