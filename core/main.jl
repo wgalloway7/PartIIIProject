@@ -30,20 +30,21 @@ function figure_n_correlation(lattice::Lattice, beta_values::Vector{Float64}, k_
     savefig(p, filename)
 end
 
-function concatenate_energies(lattice::Lattice, copies::Int64, beta_values::Vector{Float64}, k::Int64, move::String = "single flip")
-    n_correlation = generate_decorrelation_n(lattice, beta_values; k=k, move=move, maximum_iterations = 100000)
+function concatenate_energies(lattice::Lattice, copies::Int64, beta_values::Vector{Float64}, k::Int64, n_correlation::Vector{Int64}, move::String = "single flip")
     energy_runs = [generate_energies(lattice, beta_values, k, n_correlation, move) for _ in 1:copies]
     return mean(hcat(energy_runs...), dims=2)[:]
 end
 
-function figure_E_anneal(lattice::Lattice, beta_values::Vector{Float64}, k_values::Vector{Int64}, copies::Int64, filename::String, datafile::String, folder::String, N::Int64, move::String = "single flip")
+function figure_E_anneal(lattice::Lattice, beta_values::Vector{Float64}, k_values::Vector{Int64}, copies::Int64, filename::String, datafile::String, folder::String, N::Int64, move::String = "single flip", decorrelation_copies::Int64 = 1, decorrelation_n_multiplier::Int64 = 1)
     colors = cgrad(:RdBu, length(k_values))  # Set1 is a color palette with distinct colors
     p = plot()
     plot!(p, background_color = "#333333", gridcolor = :white, legend=:topright)
     
     all_data = []  # Store data for writing to file
+    #generate decorrelation n for single flip ie k =1
+    n_correlation = generate_decorrelation_n(lattice, beta_values; k=1, move="single flip", maximum_iterations=10000, copies =decorrelation_copies) .* decorrelation_n_multiplier
     for (i, k) in enumerate(k_values)
-        avg_energies = concatenate_energies(lattice, copies, beta_values, k, move)
+        avg_energies = concatenate_energies(lattice, copies, beta_values, k, n_correlation, move)
         push!(all_data, avg_energies)
         plot!(p, beta_values, avg_energies, label = "k = $k", color = colors[i])
     end

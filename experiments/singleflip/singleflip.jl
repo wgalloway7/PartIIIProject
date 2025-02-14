@@ -12,7 +12,7 @@ include("../../core/main.jl")
 
 
 function generate_single_flip_energy_runs(lattice::Lattice, copies::Int64, beta_values::Vector{Float64})
-    n_correlation = generate_decorrelation_n(lattice, beta_values; k = 1, move = "single flip", maximum_iterations = 100000)
+    n_correlation = generate_decorrelation_n(lattice, beta_values; k = 1, move = "single flip", maximum_iterations = 100000, copies = 10)
     energy_runs = [generate_energies(lattice, beta_values, 1, n_correlation, "single flip") for _ in 1:copies]
     return energy_runs
 end

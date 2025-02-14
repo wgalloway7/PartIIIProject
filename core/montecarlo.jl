@@ -78,19 +78,32 @@ function prepare_lattice!(lattice::Lattice,k::Int64 = 1; maximum_iterations::Int
     run_metropolis_algorithm(lattice, 0.0, k, maximum_iterations = maximum_iterations)
 end
 
-function generate_decorrelation_n(lattice::Lattice, beta_values::Vector{Float64}; k::Int64 = 1, move::String = "single flip", maximum_iterations::Int64 = 10000)
-    # prepare lattice in a 'hot' state
-    prepare_lattice!(lattice, k)
+function generate_decorrelation_n(lattice::Lattice, beta_values::Vector{Float64}; k::Int64 = 1, move::String = "single flip", maximum_iterations::Int64 = 10000, copies::Int64 = 1)
+    decorrelation_n_matrix = zeros(Int64, length(beta_values), copies)
 
-    # for each beta value
-    # run metropolis algorithm until correlation function drops to 1/e
-    # record number of iterations needed
-    decorrelation_n = Int64[]
-    for beta in beta_values
-        (_, _, current_iteration, _) = run_metropolis_algorithm(lattice, beta, k, move, use_correlation = true, maximum_iterations = maximum_iterations)
-        push!(decorrelation_n, current_iteration)
+    for copy_idx in 1:copies
+        # prepare lattice in a 'hot' state
+        # use single flip
+        prepare_lattice!(lattice)
+        
+    
+
+        # for each beta value
+        # run metropolis algorithm until correlation function drops to 1/e
+        # record number of iterations needed
+    
+        for beta_idx in 1:length(beta_values)
+            beta = beta_values[beta_idx]
+            (_, _, current_iteration, _) = run_metropolis_algorithm(lattice, beta, k, move, use_correlation = true, maximum_iterations = maximum_iterations)
+            
+            decorrelation_n_matrix[beta_idx, copy_idx] = current_iteration
+        end
     end
-    return decorrelation_n
+    mean_decorrelation_n = mean(decorrelation_n_matrix, dims=2)[:]
+    mean_n_int = Int64.(ceil.(mean_decorrelation_n))
+
+    return mean_n_int
+    
 end
 
 function generate_energies(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, n_correlation::Vector{Int64}, move::String = "single flip")
@@ -105,6 +118,8 @@ function generate_energies(lattice::Lattice, beta_values::Vector{Float64}, k::In
     # our decorrelation cutoff determined by "generate_decorrelation_n"
     # calculate the total energy of the lattice and store in array
 
+    #prepare lattice in hot state
+    prepare_lattice!(lattice, 1)
     for (i,beta) in enumerate(beta_values)
         run_metropolis_algorithm(lattice, beta, k, move, maximum_iterations = n_correlation[i], use_correlation = false)
         E = energy(lattice)
