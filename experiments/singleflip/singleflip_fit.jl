@@ -95,16 +95,18 @@ function onsager_free_energy(b, N)
     
     # Define the integrand:
     # ln[(1 + sqrt(1 - κ² sin²θ)) / 2]
-    integrand(theta) = log((1 + sqrt(1 - kappa^2 * sin(theta)^2)) / 2)
+    function integrand(theta)
+        return log(1 + sqrt(1 - kappa^2 * sin(theta)^2))
+    end
     
     # Compute the integral from 0 to π and include the 1/(2π) factor
-    I, _ = quadgk(integrand, 0, pi)
-    I /= (2 * pi)
+    I, _ = quadgk(integrand, 0, pi/2)
+    I /= pi
     
     # Standard form of Onsager's free energy:
     # -b * f = ln(2 cosh(2b)) + I
     # So, f = -1/b * [ln(2 cosh(2b)) + I]
-    return -1 / b * (log(2 * cosh(2*K)) + I)
+    return (log(sqrt(2) * cosh(2*K)) + I) / (-b)
 end
 
 # Onsager energy per spin: E = d/db (b * f)
