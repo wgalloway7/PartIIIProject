@@ -49,7 +49,7 @@ function configuration_correlation_function(lattice_configuration::Matrix{Int64}
     total_sites = lattice.N ^ 2
     
     #normalising
-    return match_count/ total_sites
+    return 2*(match_count/ total_sites - 0.5)
 end
 
 function energy(lattice::Lattice)
