@@ -64,7 +64,7 @@ end
 N = 200
 beta_values = 1 ./ generate_T_intervals(10.0, 0.25, 100)
 #E_runs = readdlm("experiments\\singleflip\\single_flips.csv", ',', Float64)
-E_runs = readdlm("experiments\\singleflip\\single_flips_N50.csv", ',', Float64)
+E_runs = readdlm("experiments\\singleflip\\single_flips_N200.csv", ',', Float64)
 E_runs_vector = [collect(row) for row in eachrow(E_runs)]
 figure_C(E_runs_vector, beta_values, "C_singleflip.png", "experiments\\singleflip", N)
 
@@ -86,37 +86,46 @@ function entropy_from_heat_capacity(C::Vector{Float64}, beta_values::Vector{Floa
 end
 
 
-function onsager_free_energy(b,N)
-    J = 1
-    # K = J / kT = Jb
-    function u(b)
-        return 1 / (sinh(2 * b * J))^2
-    end
-
-    function integrand(theta)
-        return log(cosh(2*J*b)^2 + + sqrt(1 + u(b)^2 - 2 * u(b) * cos(2 * theta))/u(b))
-    end
-
-    integral = quadgk(integrand, 0, pi)[1]
-    return -(log(2)/2 + 1/(2 * pi) * integral) / b
+# Onsager free energy per spin (with J = 1, k_B = 1)
+function onsager_free_energy(b, N)
+    # Here K = b (since J = 1)
+    K = b
+    # Define κ = 2 sinh(2K) / cosh(2K)^2
+    kappa = 2 * sinh(2*K) / (cosh(2*K)^2)
+    
+    # Define the integrand:
+    # ln[(1 + sqrt(1 - κ² sin²θ)) / 2]
+    integrand(theta) = log((1 + sqrt(1 - kappa^2 * sin(theta)^2)) / 2)
+    
+    # Compute the integral from 0 to π and include the 1/(2π) factor
+    I, _ = quadgk(integrand, 0, pi)
+    I /= (2 * pi)
+    
+    # Standard form of Onsager's free energy:
+    # -b * f = ln(2 cosh(2b)) + I
+    # So, f = -1/b * [ln(2 cosh(2b)) + I]
+    return -1 / b * (log(2 * cosh(2*K)) + I)
 end
 
-function onsager_energy(b,N)
-    F = onsager_free_energy(b,N)
-    dF_db = ForwardDiff.derivative(b -> onsager_free_energy(b,N), b)
-    return (F + b * dF_db)
+# Onsager energy per spin: E = d/db (b * f)
+function onsager_energy(b, N)
+    E = ForwardDiff.derivative(b -> b * onsager_free_energy(b, N), b)
+    return E
 end
 
-function onsager_specific_heat(b,N)
-    dU_db = ForwardDiff.derivative(b -> onsager_energy(b,N), b)
-    c = -b^2 * dU_db
-    return c
+# Onsager specific heat per spin: C = b² * dE/db
+function onsager_specific_heat(b, N)
+    dE_db = ForwardDiff.derivative(b -> onsager_energy(b, N), b)
+    C = -b^2 * dE_db
+    return C
 end
 
-function onsager_entropy(b,N)
-    F = onsager_free_energy(b,N)
-    U = onsager_energy(b,N)
-    return (U-F)*b
+# Onsager entropy per spin: S = b * (E - f)
+function onsager_entropy(b, N)
+    U = onsager_energy(b, N)
+    F = onsager_free_energy(b, N)
+    S = b * (U - F)
+    return S
 end
 
 
