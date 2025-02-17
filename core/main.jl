@@ -46,6 +46,7 @@ function figure_E_anneal(lattice::Lattice, beta_values::Vector{Float64}, k_value
     n_correlation = Int64.(ceil.(n_correlation))
     println(n_correlation)
     for (i, k) in enumerate(k_values)
+        println(k)
         avg_energies = concatenate_energies(lattice, copies, beta_values, k, n_correlation, move)
         push!(all_data, avg_energies)
         plot!(p, beta_values, avg_energies, label = "k = $k", color = colors[i])
