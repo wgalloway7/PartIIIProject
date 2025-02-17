@@ -35,7 +35,7 @@ for N in N_values
     println(N)
     lattice.N = N
     lattice.grid = solved_configuration(N)
-    filename = joinpath("experiments","decorrelation","decorrelation_avg_N$N.png")
+    filename = joinpath("new_decorrelation_avg_N$N.png")
     figure_n_correlation(lattice, beta_values, copies, filename, N, monte_carlo_steps)
     println(now() - time)
     
@@ -47,7 +47,7 @@ lattice.grid = solved_configuration(50)
 for m in monte_carlo_steps_values
     time = now()
     println(m)
-    filename = joinpath("experiments","decorrelation","decorrelation_avg_m$m.png")
+    filename = joinpath("new_decorrelation_avg_m$m.png")
     figure_n_correlation(lattice, beta_values, copies, filename, 50, m)
     println(now() - time)
 end
