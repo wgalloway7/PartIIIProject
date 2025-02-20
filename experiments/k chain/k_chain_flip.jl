@@ -12,7 +12,7 @@ include("../../core/lattice.jl")
 include("../../core/montecarlo.jl")
 include("../../core/main.jl")
 
-N = 50
+N = 100
 lattice = Lattice(N)
 lattice.grid = solved_configuration(N)
 
@@ -25,8 +25,8 @@ folder = ""
 move = "k chain flip"
 
 time = now()
-file_name =  "$time k chain flip.png"
-data_file = "$time  k chain flip.csv"
+file_name =  "bigger k chain flip.png"
+data_file = "bigger k chain flip.csv"
 n_multiplier = 1.0
 
 decorrelation_copies = 10

@@ -6,19 +6,28 @@ using Random
 using Plots
 using Statistics
 using DelimitedFiles
+using Dates
 
 include("../../core/lattice.jl")
 include("../../core/montecarlo.jl")
 include("../../core/main.jl")
 
 
-N = 50
+N = 100
 lattice = Lattice(N)
 lattice.grid = solved_configuration(N)
 
-beta_values = 1 ./ generate_T_intervals(10.0, 0.8, 6)
-filename = "hmmm.png"
-m = 10
+beta_values = 1 ./ generate_T_intervals(10.0, 0.8, 10)
+filename = "VTM_kchain22.png"
+datafile = "VTM_kchain22.csv"
+copies = 50
 
-figure_correlation_decay(lattice, beta_values, 1, filename, 10000, m, 10000, "single flip")
+measurement_MC_steps = 10
+cooling_MC_steps = 10
+k = 22
+
+println("started")
+time = now()
+figure_correlation_decay(lattice, beta_values, 51, filename, datafile, measurement_MC_steps, copies, cooling_MC_steps, "k chain flip")
+println(now() - time)
 println("done")

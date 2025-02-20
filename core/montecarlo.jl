@@ -122,6 +122,7 @@ function generate_energies(lattice::Lattice, beta_values::Vector{Float64}, k::In
     #prepare lattice in hot state
     prepare_lattice!(lattice, 1)
     for (i,beta) in enumerate(beta_values)
+        println(beta)
         run_metropolis_algorithm(lattice, beta, k, move, maximum_iterations = n_correlation[i], use_correlation = false)
         E = energy(lattice)
         push!(energies, E)
