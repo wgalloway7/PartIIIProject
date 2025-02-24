@@ -122,7 +122,7 @@ function generate_energies(lattice::Lattice, beta_values::Vector{Float64}, k::In
     #prepare lattice in hot state
     prepare_lattice!(lattice, 1)
     for (i,beta) in enumerate(beta_values)
-        println(beta)
+        #println(beta)
         run_metropolis_algorithm(lattice, beta, k, move, maximum_iterations = n_correlation[i], use_correlation = false)
         E = energy(lattice)
         push!(energies, E)
@@ -200,7 +200,9 @@ function generate_saddles(lattice::Lattice, beta_values::Vector{Float64}, k::Int
     # and energy values
     saddle_values = []
     energy_values = []
-    beta_vals = []
+    output_beta_vals = []
+    critical_energy_values = []
+    critical_beta_values = []
 
    # to use threads?
     for j in 1:m
@@ -211,9 +213,25 @@ function generate_saddles(lattice::Lattice, beta_values::Vector{Float64}, k::Int
         (saddles, energies, betas) = generate_saddles_run(lattice, noisy_beta_values, k, move, cooling_time)
         push!(saddle_values, saddles)
         push!(energy_values, energies)
-        push!(beta_vals, betas)
+        push!(output_beta_vals, betas)
         println("run = $j")
+        #identifying tempetature and beta at which saddle index vanishes upon cooling.
+        critical_energy = -2.0
+        critical_beta = 0.0
+        for (i,s) in enumerate(saddles)
+            if s == 0
+                critical_energy = energies[i]
+                critical_beta = betas[i]
+                break
+            end
+        end
+        push!(critical_energy_values, critical_energy)
+        push!(critical_beta_values, critical_beta)
         
+
+    
+
+    
     end
-    return (saddle_values, energy_values, beta_values)
+    return (saddle_values, energy_values, output_beta_vals, critical_energy_values, critical_beta_values, k)
 end

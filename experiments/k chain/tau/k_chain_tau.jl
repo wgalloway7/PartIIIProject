@@ -23,20 +23,19 @@ function figure_E_vary_tau(lattice::Lattice, beta_values::Vector{Float64}, k::In
     println(n_correlation)
     scaled_n_correlation = Int64.(ceil.(n_correlation .* first(decorrelation_n_multiplier_values)))
     for (i, tau) in enumerate(decorrelation_n_multiplier_values)
-        println(tau)
         scaled_n_correlation = Int64.(ceil.(n_correlation .* tau))
         avg_energies = concatenate_energies(lattice, copies, beta_values, k, scaled_n_correlation, move)
         push!(all_data, avg_energies)
-        plot!(p, beta_values, avg_energies, label = "tau = $tau", color = colors[i])
+        plot!(p, beta_values, avg_energies, label = "N = $tau N_tau", color = colors[i])
     end
-    avg_energies = concatenate_energies(lattice, copies, beta_values, 1, scaled_n_correlation, "single flip")
+    avg_energies = concatenate_energies(lattice, copies, beta_values, 1, n_correlation, "single flip")
     push!(all_data, avg_energies)
-    plot!(p, beta_values, avg_energies, label = "single flip")
-    
+    plot!(p, beta_values, avg_energies, label = "Single flip")
+
     
     xlabel!(p,"Beta", xlabelcolor = :white)
     ylabel!(p,"Energy", ylabelcolor = :white)
-    title!(p,"N = $N, copies = $copies, $move", titlecolor = :white)
+    title!(p,"N = $N, copies = $copies, $move, k = $k", titlecolor = :white)
     savefig(joinpath(folder, filename))
     
     # Save data to file
@@ -49,21 +48,23 @@ lattice.grid = solved_configuration(N)
 
 
 beta_values = 1 ./ generate_T_intervals(10.0, 0.5, 100)
-k  = 99
+k_values = [1,2,3,4,5,10,11,25,26,50,51,75,99]
 copies = 10
 folder = ""
 monte_carlo_timesteps = 10
 
 move = "k chain flip"
-
-
-file_name =  "tau k chain flip.png"
-data_file = "tau k chain flip.csv"
 n_multiplier = [0.1,0.5, 1.0, 2.0, 4.0, 8.0]
-
 decorrelation_copies = 10
-time = now()
 println("started")
-figure_E_vary_tau(lattice, beta_values, k, copies, file_name, data_file, folder, N, n_multiplier, move, decorrelation_copies, monte_carlo_timesteps)
-println(time - now())
+for k in k_values
+    file_name =  "tau k$k chain flip.png"
+    data_file = "tau k$k chain flip.csv"
+
+
+    time = now()
+    println("k=$k")
+    figure_E_vary_tau(lattice, beta_values, k, copies, file_name, data_file, folder, N, n_multiplier, move, decorrelation_copies, monte_carlo_timesteps)
+    println(time - now())
+end
 println("Finished all")
