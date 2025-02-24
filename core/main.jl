@@ -212,6 +212,31 @@ function fit_tau(correlation_histories::Matrix{Float64}, beta_values::Vector{Flo
     return params
 end
 
+function VFT_fit(beta_values::Vector{Float64}, tau_values::Vector{Float64}, filename::String ,N::Int64, do_plot::Bool = false)
+    # implement Vogel-Fulcher-Tammann fit
+    function VFT(T,p)
+        T0, A,delta = p
+        return A .* exp.(delta ./ (T .- T0))
+    end
+    T_values = 1.0 ./ beta_values
+    initial_params = [1.0, Float64(N^2), 1.0]
+    lower_bounds = [1e-8, 1e-8, 1e-8]
+    upper_bounds = [Inf, Inf, Inf]
 
+    fit = curve_fit(VFT, T_values, tau_values, initial_params, lower=lower_bounds, upper=upper_bounds)
+    fitted_params = fit.param
+    
+    if do_plot
+        p = plot()
+        plot!(p, background_color="#333333", gridcolor=:white, legend=:topright)
+        scatter!(p, beta_values, log10.(tau_values), label="data", color="red")
+        plot!(p, beta_values, log10.(VFT(beta_values, fitted_params)), label="fit", linestyle=:dash, color="blue")
+        xlabel!(p, "Beta")
+        ylabel!(p, "log10(tau)")
+        title!(p, "VFT fit")
+        savefig(p, filename)
+    end
+    return fitted_params
+end
 
 

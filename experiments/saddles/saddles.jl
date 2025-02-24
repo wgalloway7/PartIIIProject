@@ -66,4 +66,6 @@ ylabel!(p4, "Critical Beta")
 title!(p4, "Critical Beta vs k")
 scatter!(p4, k_values, critical_beta, label = "")
 savefig(p4, joinpath(folder, "critical_saddles_k_chain_flip_beta.png"))
+
+writedlm("critical_saddles.csv",(k_values, critical_energy, critical_beta),',')
 println("finished")
