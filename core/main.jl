@@ -163,3 +163,55 @@ function fit_VTM(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, filen
 
     return params
 end
+
+
+function fit_tau(correlation_histories::Matrix{Float64}, beta_values::Vector{Float64}, N::Int64, move::String, filename::String, datafile::String, k::Int = 1, do_plot::Bool = false, write_data::Bool = true)
+    # fit autocorrelation function to stretched exponential form
+    function relaxation(t,p)
+        tau, alpha = p
+        return exp.(-(t./tau) .^ alpha)
+    end
+    params = []
+    if do_plot
+        p = plot()
+        colors = cgrad(:RdBu, length(beta_values))
+        plot!(p, background_color="#333333", gridcolor=:white, legend=:topright)
+        xlabel!(p, "Iterations (t)")
+        ylabel!(p, "Autocorrelation C(t)")
+        title!(p, "VTM fit for $move, k = $k, N = $N")
+    end
+    
+    for (i,beta) in enumerate(beta_values)
+        y_data = correlation_histories[i,:]
+        x_data = Float64.(1:length(y_data))
+
+        initial_params = [Float64(N^2),1.0]
+        lower_bounds = [1.0,1e-8]
+        upper_bounds = [Inf,Inf]
+        fit = curve_fit(relaxation,x_data,y_data,initial_params,lower=lower_bounds,upper=upper_bounds)
+        fitted_params = fit.param
+        push!(params,vcat(fitted_params,beta))
+
+        if do_plot
+            tau = round(fitted_params[1])
+            alpha = round(fitted_params[2],digits=2)
+            beta_round = round(beta,digits=2)
+            plot!(p,x_data,y_data,label="$beta_round",color=colors[i])
+            plot!(p,x_data,relaxation(x_data,fitted_params),label="fit, tau = $tau, alpha = $alpha",linestyle=:dash,color="blue")
+            
+        end
+    end
+    if do_plot
+        savefig(p,filename)
+    end
+
+    if write_data
+        writedlm(datafile,hcat(params...),',')
+    end
+
+    return params
+end
+
+
+
+

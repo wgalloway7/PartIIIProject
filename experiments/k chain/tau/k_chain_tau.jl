@@ -30,7 +30,7 @@ function figure_E_vary_tau(lattice::Lattice, beta_values::Vector{Float64}, k::In
     end
     avg_energies = concatenate_energies(lattice, copies, beta_values, 1, n_correlation, "single flip")
     push!(all_data, avg_energies)
-    plot!(p, beta_values, avg_energies, label = "Single flip")
+    plot!(p, beta_values, avg_energies, label = "Single flip", color = "blue")
 
     
     xlabel!(p,"Beta", xlabelcolor = :white)
