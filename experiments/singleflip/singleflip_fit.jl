@@ -65,7 +65,7 @@ end
 N = 200
 beta_values = 1 ./ generate_T_intervals(10.0, 0.25, 100)
 #E_runs = readdlm("experiments\\singleflip\\single_flips.csv", ',', Float64)
-E_runs = readdlm("single_flips_N200.csv", ',', Float64)
+E_runs = readdlm("single_flips_N100_p8.csv", ',', Float64)
 E_runs_vector = [collect(row) for row in eachrow(E_runs)]
 figure_C(E_runs_vector, beta_values, "C_singleflip.png", "", N)
 

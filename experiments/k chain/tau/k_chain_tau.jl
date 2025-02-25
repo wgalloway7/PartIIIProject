@@ -48,7 +48,8 @@ lattice.grid = solved_configuration(N)
 
 
 beta_values = 1 ./ generate_T_intervals(10.0, 0.5, 100)
-k_values = [1,2,3,4,5,10,11,25,26,50,51,75,99]
+#k_values = [1,2,3,4,5,10,11,25,26,50,51,75,99]
+k_values = [26,50,51,75,99]
 copies = 10
 folder = ""
 monte_carlo_timesteps = 10
