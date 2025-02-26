@@ -1,7 +1,6 @@
 #montecarlo.jl
 include("lattice.jl")
 
-
 @inline function monte_carlo_timestep!(lattice::Lattice, move::String, beta::Float64; verbose::Bool=false, k::Int64=1)
     # generates potential move's flip sites
     flips = generate_moves(lattice, move, k)
@@ -20,13 +19,15 @@ include("lattice.jl")
 
 end
 
-function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, move::String = "single flip"; maximum_iterations::Int64=10000, configuration_correlation_convergence_criteria::Float64=exp(-1.0), verbose::Bool=false, use_correlation::Bool=true)
+function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, move::String = "single flip"; maximum_iterations::Int64=10000, configuration_correlation_convergence_criteria::Float64=exp(-1.0), verbose::Bool=false, use_correlation::Bool=true, correlation_measurements_per_MC_timstep::Int64=1)
     # runs metropolis-hastings algorithm
     # for given move funciton, beta and k
     # iteration cutoff either predetermined or until correlation function drops to 1/e
 
     current_iteration = 0
     accepted_candidates = 0
+
+    iterations_per_correlation_measurement = Int64(floor(lattice.N^2 / correlation_measurements_per_MC_timstep))
 
     initial_lattice = Lattice(lattice.N)
     initial_lattice.grid = copy(lattice.grid)
@@ -51,7 +52,7 @@ function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, mov
         # calculate correlation function every lattice.N^2 iterations
         # ie 1 Monte-Carlo iteration
         #if use_correlation
-        if use_correlation
+        if use_correlation && current_iteration % iterations_per_correlation_measurement == 0
             current_configuration_correlation_function_value = configuration_correlation_function(lattice, initial_lattice)
         end
 

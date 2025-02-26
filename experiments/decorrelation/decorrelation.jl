@@ -25,6 +25,7 @@ function figure_n_correlation(lattice::Lattice, beta_values::Vector{Float64}, co
     savefig(p, filename)
 end
 
+
 copies = 5
 beta_values = 1 ./ generate_T_intervals(10.0, 0.5, 100)
 N_values = [10,20,50,100]
