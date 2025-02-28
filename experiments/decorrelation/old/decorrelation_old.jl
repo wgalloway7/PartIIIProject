@@ -17,29 +17,40 @@ function figure_n_correlation(lattice::Lattice, beta_values::Vector{Float64}, co
     p = plot()
     #plot!(p, background_color="#333333", gridcolor=:white, legend=:topright)
     avg_correlation = generate_decorrelation_n(lattice, beta_values; k=1, move="single flip", maximum_iterations=monte_carlo_steps * N^2, copies = copies)
-    plot!(p, beta_values, (avg_correlation / N^2))
+    plot!(p, beta_values, log10.(avg_correlation / N^2))
     
     xlabel!(p, "Beta")
-    ylabel!(p, "MC steps")
+    ylabel!(p, "log(Average n_correlation)")
     title!(p, "N = $N, $copies runs, $monte_carlo_steps  Monte Carlo steps")
     savefig(p, filename)
 end
 
 
-copies = 1
-beta_values = 1 ./ generate_T_intervals(10.0, 0.1, 2)
-monte_carlo_steps = 1
-N = 10
-lattice = Lattice(N)
+copies = 5
+beta_values = 1 ./ generate_T_intervals(10.0, 0.5, 10)
+N_values = [100]
+monte_carlo_steps = 1000
+lattice = Lattice(10)
+for N in N_values
+    time = now()
+    println(N)
+    lattice.N = N
+    lattice.grid = solved_configuration(N)
+    filename = joinpath("new_decorrelation_avg_N$N.png")
+    figure_n_correlation(lattice, beta_values, copies, filename, N, monte_carlo_steps)
+    println(now() - time)
+    
+end
 
-time = now()
-println("started")
-figure_n_correlation(lattice, beta_values, copies, "test.png", N, monte_carlo_steps)
-println(now() - time)
-
-# 100 beta values
-# 5 copies
-# 10000 monte carlo steps
-# 100 lattice size
-# 8935923 milliseconds (2 hours, 28 minutes, 19 seconds)
+monte_carlo_steps_values = [1,2,5,10,20]
+lattice.N = 50
+lattice.grid = solved_configuration(50)
+for m in monte_carlo_steps_values
+    time = now()
+    println(m)
+    filename = joinpath("new_decorrelation_avg_m$m.png")
+    figure_n_correlation(lattice, beta_values, copies, filename, 50, m)
+    println(now() - time)
+end
+    
     

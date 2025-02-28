@@ -31,11 +31,12 @@ function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, mov
 
     initial_lattice = Lattice(lattice.N)
     initial_lattice.grid = copy(lattice.grid)
+    C_0 = sum(initial_lattice.grid)
     #if we are continuously computing the correlation function we need to compute it here
     #if we are using predefined cutoff iteration numbers from previously calculated decorrelations
     #no need to compute it here
     if use_correlation
-        current_configuration_correlation_function_value = configuration_correlation_function(lattice, initial_lattice)
+        current_configuration_correlation_function_value = configuration_correlation_function(lattice, initial_lattice, C_initial)
 
     else
         current_configuration_correlation_function_value = 1.0
@@ -53,7 +54,7 @@ function run_metropolis_algorithm(lattice::Lattice, beta::Float64, k::Int64, mov
         # ie 1 Monte-Carlo iteration
         #if use_correlation
         if use_correlation && current_iteration % iterations_per_correlation_measurement == 0
-            current_configuration_correlation_function_value = configuration_correlation_function(lattice, initial_lattice)
+            current_configuration_correlation_function_value = configuration_correlation_function(lattice, initial_lattice, C_0)
         end
 
         
@@ -77,16 +78,17 @@ function prepare_lattice!(lattice::Lattice,k::Int64 = 1; maximum_iterations::Int
     #then runs metropolis algorithm for beta = 0
     #equivalent to infinite temperature, all moves are accepted
     lattice.grid = solved_configuration(lattice.N)
-    run_metropolis_algorithm(lattice, 0.0, k, maximum_iterations = maximum_iterations)
+    run_metropolis_algorithm(lattice, 0.0, k, maximum_iterations = maximum_iterations, use_correlation = false)
 end
 
 function generate_decorrelation_n(lattice::Lattice, beta_values::Vector{Float64}; k::Int64 = 1, move::String = "single flip", maximum_iterations::Int64 = 10000, copies::Int64 = 1)
     decorrelation_n_matrix = zeros(Int64, length(beta_values), copies)
-
+    println(maximum_iterations)
     for copy_idx in 1:copies
         # prepare lattice in a 'hot' state
         # use single flip
         prepare_lattice!(lattice,1 ;maximum_iterations = maximum_iterations)
+
         
     
 
@@ -96,8 +98,9 @@ function generate_decorrelation_n(lattice::Lattice, beta_values::Vector{Float64}
     
         for beta_idx in 1:length(beta_values)
             beta = beta_values[beta_idx]
-            (_, _, current_iteration, _) = run_metropolis_algorithm(lattice, beta, k, move, use_correlation = true, maximum_iterations = maximum_iterations)
             
+            (_, _, current_iteration, _) = run_metropolis_algorithm(lattice, beta, k, move, use_correlation = true, maximum_iterations = maximum_iterations)
+            println("beta = $beta, I = $current_iteration")
             decorrelation_n_matrix[beta_idx, copy_idx] = current_iteration
         end
     end
@@ -158,10 +161,11 @@ function generate_correlations(lattice::Lattice, beta_values::Vector{Float64}, k
         # making reference lattice to calculate correlation function from
         ref_lattice = Lattice(lattice.N)
         ref_lattice.grid = copy(lattice.grid)
+        C_0 = sum(ref_lattice.grid)
         while current_iteration < max_measurement_iterations
             # run metropolis algorithm for 1000 iterations
             # calculate correlation function and add to history array
-            push!(correlation_history, configuration_correlation_function(lattice, ref_lattice))
+            push!(correlation_history, configuration_correlation_function(lattice, ref_lattice, C_0))
             monte_carlo_timestep!(lattice, move, beta, k = k)
             current_iteration += 1
         #break after max_measurement_iterations

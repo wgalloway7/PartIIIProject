@@ -36,21 +36,21 @@ function random_configuration(N::Int, m::Float64)
 end
 
 
-function configuration_correlation_function(lattice::Lattice, reference_lattice::Lattice)
-    return configuration_correlation_function(lattice.grid, reference_lattice.grid)
+function configuration_correlation_function(lattice::Lattice, reference_lattice::Lattice, C_0::Int64)
+    # calculate correlation function
+    # C(t) = <s(t) s(0)> - <s(t)> <s(0)>
+    # C(t) = 1/N^2 [sum(s_i(t) s_i(0)) - sum(s_i(t)) * sum(s_i(0))]
+    lattice_configuration = lattice.grid
+    reference_lattice_configuration = reference_lattice.grid
+
+    C_t_C_0 = sum(lattice_configuration .* reference_lattice_configuration)
+    C_t = sum(lattice_configuration)
+    
+
+    
+    return (C_t_C_0 / lattice.N) - (C_t * C_0 / lattice.N^2)
 end
-#TO FIX: why is there two of these?
 
-function configuration_correlation_function(lattice_configuration::Matrix{Int64}, reference_lattice_configuration::Matrix{Int64})
-    # calculates correlation function given lattice and reference lattice
-
-
-    match_count = sum(lattice_configuration .== reference_lattice_configuration)
-    total_sites = lattice.N ^ 2
-    fraction = match_count/ total_sites
-    #uncorrelated fraction 0.5
-    return 2 * (fraction - 0.5) 
-end
 function energy(lattice::Lattice)
     # for each lattice sites
     # calculate sum of nearest neighbours
