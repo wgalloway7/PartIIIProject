@@ -178,9 +178,9 @@ end
 function generate_autocorrelation2(lattice::Lattice, beta_values::Vector{Float64}; k::Int64 = 1, move::String = "single flip")
     # sum over sites on lattice only at the end
     measurement_steps = 100000
-    equilib_steps =10000
+    equilib_steps =5000
     MC_step = lattice.N^2
-    max_lag = 2000
+    max_lag = 1000
     lag = [i for i in 0:max_lag]
     autocorr_beta = []
 
@@ -224,7 +224,7 @@ function generate_autocorrelation2(lattice::Lattice, beta_values::Vector{Float64
     return autocorr_beta
 end
 
-function generate_tau_quick2(lattice::Lattice, beta_values::Vector{Float64}, save_file::Bool = false, k::Int64 = 1, move::String = "single flip", filename::String = "autocorrelation.csv")
+function generate_tau_quick2(lattice::Lattice, beta_values::Vector{Float64}, save_file::Bool = false; k::Int64 = 1, move::String = "single flip", filename::String = "autocorrelation.csv")
     autocorr_beta = generate_autocorrelation2(lattice, beta_values, k = k, move = move)
     if save_file
         open(filename, "w") do io

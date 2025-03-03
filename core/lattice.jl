@@ -163,7 +163,7 @@ end
                 sum_neighbours += lattice.grid[xp,yp]
             end
         end
-        total_energy_change += -lattice.grid[x, y] * sum_neighbours
+        total_energy_change += -lattice.grid[x, y] * 2 * sum_neighbours
     end
     # / N completely arbitrary, just shifts temperature scale
     return total_energy_change
