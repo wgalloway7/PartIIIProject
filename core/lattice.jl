@@ -3,22 +3,33 @@ using Random
 using LinearAlgebra
 using Distributions
 using Combinatorics
+using DelimitedFiles
 
 mutable struct Lattice
-    #configuration of Lattice (2D array of binary spins)
+    # Configuration of the lattice (2D array of binary spins)
     grid::Matrix{Int64}
+    N::Int64
+    tau_values::Vector{Int64}  # Vector to store the tau values read from a CSV
 
-    N:: Int64
-
-    Lattice(N) = new(solved_configuration(N),N)
+    # Constructor to initialize the lattice with solved configuration and tau values
+    function Lattice(N::Int64, csv_file::String = "tau_values_N100_betares100.csv")
+        grid = solved_configuration(N)
+        tau_values = read_tau_values(csv_file)
+        new(grid, N, tau_values)
+    end
 end
-
 
 @inline function solved_configuration(N::Int64)
     # minimal energy state
     # all spins aligned
     # acessilbe assuming ergodic
     return fill(1,N,N)
+end
+
+function read_tau_values(csv_file::String)
+    # Read the CSV file
+    data =readdlm(csv_file, ',')
+    return Int64.(data[2, :])  
 end
 
 function random_configuration(N::Int, m::Float64)
@@ -37,6 +48,7 @@ end
 
 
 function configuration_correlation_function(lattice::Lattice, reference_lattice::Lattice, C_0::Int64)
+    # OlD, wrong implementation
     # calculate correlation function
     # C(t) = <s(t) s(0)> - <s(t)> <s(0)>
     # C(t) = 1/N^2 [sum(s_i(t) s_i(0)) - sum(s_i(t)) * sum(s_i(0))]

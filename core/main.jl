@@ -9,19 +9,16 @@ include("lattice.jl")
 include("montecarlo.jl")
 
 function figure_n_correlation(lattice::Lattice, beta_values::Vector{Float64}, k_values::Vector{Int64}, m::Int64, filename::String, N::Int64)
+    #rebuilt for new tau functions, not that useful though as will take ages
     colors = cgrad(:RdBu, length(k_values))
     p = plot()
     plot!(p, background_color="#333333", gridcolor=:white, legend=:topright)
     
+    tau_values = lattice.tau_values
     for (i, k) in enumerate(k_values)
-        all_correlations = []
+        tau_values = generate_tau_quick(lattice, beta_values, k=k, copies=m)
         
-        for _ in 1:m
-            push!(all_correlations, generate_decorrelation_n(lattice, beta_values; k=k, move="single flip", maximum_iterations=10000))
-        end
-        
-        avg_correlation = mean(all_correlations)
-        plot!(p, beta_values, avg_correlation, label="k = $k", color=colors[i])
+        plot!(p, beta_values, tau_values, label="k = $k", color=colors[i])
     end
     
     xlabel!(p, "Beta", xlabelcolor=:white)
@@ -30,8 +27,8 @@ function figure_n_correlation(lattice::Lattice, beta_values::Vector{Float64}, k_
     savefig(p, filename)
 end
 
-function concatenate_energies(lattice::Lattice, copies::Int64, beta_values::Vector{Float64}, k::Int64, n_correlation::Vector{Int64}, move::String = "single flip")
-    energy_runs = [generate_energies(lattice, beta_values, k, n_correlation, move) for _ in 1:copies]
+function concatenate_energies(lattice::Lattice, copies::Int64, beta_values::Vector{Float64}, k::Int64, tau_values::Vector{Int64}, move::String = "single flip")
+    energy_runs = [generate_energies(lattice, beta_values, k, tau_values, move) for _ in 1:copies]
     return mean(hcat(energy_runs...), dims=2)[:]
 end
 
@@ -42,12 +39,10 @@ function figure_E_anneal(lattice::Lattice, beta_values::Vector{Float64}, k_value
     
     all_data = []  # Store data for writing to file
     #generate decorrelation n for single flip ie k =1
-    n_correlation = generate_decorrelation_n(lattice, beta_values; k=1, move="single flip", maximum_iterations=maximum_iterations, copies =decorrelation_copies) .* decorrelation_n_multiplier
-    n_correlation = Int64.(ceil.(n_correlation))
-    println(n_correlation)
+    tau_values = lattice.tau_values
     for (i, k) in enumerate(k_values)
         println(k)
-        avg_energies = concatenate_energies(lattice, copies, beta_values, k, n_correlation, move)
+        avg_energies = concatenate_energies(lattice, copies, beta_values, k, tau_values, move)
         push!(all_data, avg_energies)
         plot!(p, beta_values, avg_energies, label = "k = $k", color = colors[i])
     end
@@ -108,15 +103,6 @@ function figure_correlation_decay(lattice::Lattice, beta_values::Vector{Float64}
     return averaged_correlations
 end
 
-#N = 50
-#lattice = Lattice(N)
-#lattice.grid = solved_configuration(N)
-
-#beta_values = 1 ./ generate_T_intervals(10.0, 0.8, 6)
-#filename = "hmmm.png"
-#m = 10
-
-#figure_correlation_decay(lattice, beta_values, 1, filename, 10000, m, 10000, "single flip")
 function fit_VTM(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, filename::String, folder::String, datafile::String, move::String = "single flip", max_measurement_iterations::Int64 = 1000, cooling_time::Int64 = 1000, copies::Int64=1, output::Bool = true)
     println("copies $copies")
     time = now()
