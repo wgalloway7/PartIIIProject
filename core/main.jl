@@ -8,7 +8,7 @@ using LsqFit
 include("lattice.jl")
 include("montecarlo.jl")
 
-function figure_n_correlation(lattice::Lattice, beta_values::Vector{Float64}, k_values::Vector{Int64}, m::Int64, filename::String, N::Int64)
+function figure_tau(lattice::Lattice, beta_values::Vector{Float64}, k_values::Vector{Int64}, m::Int64, filename::String, N::Int64)
     #rebuilt for new tau functions, not that useful though as will take ages
     colors = cgrad(:RdBu, length(k_values))
     p = plot()
@@ -16,14 +16,14 @@ function figure_n_correlation(lattice::Lattice, beta_values::Vector{Float64}, k_
     
     tau_values = lattice.tau_values
     for (i, k) in enumerate(k_values)
-        tau_values = generate_tau_quick(lattice, beta_values, k=k, copies=m)
+        tau_values = generate_tau(lattice, beta_values, k=k)
         
         plot!(p, beta_values, tau_values, label="k = $k", color=colors[i])
     end
     
     xlabel!(p, "Beta", xlabelcolor=:white)
-    ylabel!(p, "Average n_correlation", ylabelcolor=:white)
-    title!(p, "Average n_correlation vs Beta for various k, N = $N, number of runs = $m", titlecolor=:white)
+    ylabel!(p, "Tau", ylabelcolor=:white)
+    title!(p, "Tau vs Beta for various k, N = $N, number of runs = $m", titlecolor=:white)
     savefig(p, filename)
 end
 
@@ -60,12 +60,8 @@ end
 
 
 
-function figure_correlation_decay(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, filename::String, datafile::String, measurement_MC_steps::Int64, copies::Int64, cooling_MC_steps::Int64, move::String = "single flip", do_plot = true)
+function figure_correlation_decay(lattice::Lattice, beta_values::Vector{Float64}, k::Int64; max_lag::Int64 = 250, measurement_steps::Int64 = 15000, equilib_steps::Int64 = 1250, filename::String, datafile::String, move::String = "single flip", do_plot = true)
     colors = cgrad(:RdBu, length(beta_values))
-    max_measurement_iterations = measurement_MC_steps * lattice.N^2
-    cooling_time = cooling_MC_steps * lattice.N^2
-    println(max_measurement_iterations, cooling_time)
-    
     
     # Initialize storage for correlation histories
     correlation_histories = [ [] for _ in beta_values ]
@@ -73,9 +69,9 @@ function figure_correlation_decay(lattice::Lattice, beta_values::Vector{Float64}
     # Run multiple instances and collect data
     # m instances
     for _ in 1:copies
-        correlations_beta = generate_correlations(lattice, beta_values, k, move, max_measurement_iterations, cooling_time)
+        correlations_beta = generate_autocorrelation(lattice, beta_values, k, move, max_lag, measurement_steps, equilib_steps)
         for (i, corr_history) in enumerate(correlations_beta)
-            push!(correlation_histories[i], corr_history)  # Store runs
+            push!(correlation_histories[i], corr_history[2])  # Store runs
         end
     end
 

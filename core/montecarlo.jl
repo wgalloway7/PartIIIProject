@@ -73,7 +73,180 @@ end
 
 
 
-function generate_autocorrelation(lattice::Lattice, beta_values::Vector{Float64}; k::Int64 = 1, move::String = "single flip", tau0_Tmax::Int64= 10, tau0_Tmin::Int64 = 10000, copies::Int64 = 1, tau_length::Int64 = 10)
+function generate_autocorrelation(lattice::Lattice, beta_values::Vector{Float64}; k::Int64 = 1, move::String = "single flip", max_lag::Int64 = 250, measurement_steps::Int64 = 15000, equilib_steps::Int64 = 1250)
+    # sum over sites on lattice only at the end
+    MC_step = lattice.N^2
+    lag = [i for i in 0:max_lag]
+    autocorr_beta = []
+
+    for beta in beta_values
+        println("beta = $beta")
+        time = now()
+        history = []
+
+        for _ in 1:equilib_steps * MC_step
+            monte_carlo_timestep!(lattice, move, beta, k = k)
+        end
+
+        #measure lattice evolution every MC step
+        for _ in 1:measurement_steps
+            measurement = energy(lattice)
+            #measurement = sum(lattice.grid) / lattice.N^2
+            push!(history, measurement)
+            for _ in 1:MC_step/10
+                monte_carlo_timestep!(lattice, move, beta, k = k)
+            end
+        end
+
+        mag_avg = mean(history)
+        mag_var= var(history)
+
+        autocorr_history = []
+        for tau in lag
+            autocorr = 0
+            for t0 in 1:(length(history) - tau)
+                autocorr += (history[t0] - mag_avg) * (history[t0 + tau] - mag_avg)
+            end
+            autocorr = autocorr / ((length(history) - tau)*mag_var)
+            push!(autocorr_history, autocorr)
+        end
+        push!(autocorr_beta, (beta, autocorr_history))
+        println(now() - time)
+    end
+    return autocorr_beta
+end
+
+function generate_tau(lattice::Lattice, beta_values::Vector{Float64}, save_file::Bool = false; k::Int64 = 1, move::String = "single flip", filename::String = "autocorrelation.csv", max_lag::Int64 = 250, measurement_steps::Int64 = 15000, equilib_steps::Int64 = 1250)
+    autocorr_beta = generate_autocorrelation(lattice, beta_values, k = k, move = move, max_lag = max_lag, measurement_steps = measurement_steps, equilib_steps = equilib_steps)
+    if save_file
+        open(filename, "w") do io
+            for entry in autocorr_beta
+                autocorr = entry[2]  # Extract the autocorrelation vector
+                writedlm(io, [autocorr], ',')  # Write as a row
+            end
+        end
+    end
+
+    tau_values = []
+    for (i, beta) in enumerate(beta_values)
+        autocorr = autocorr_beta[i][2]
+        tau = length(autocorr)
+        for (j,a) in enumerate(autocorr)
+            if a < exp(-1)
+                tau = j
+                break
+            end
+        end
+        push!(tau_values, tau)
+    end
+    return tau_values
+end
+
+
+function prepare_lattice!(lattice::Lattice,k::Int64 = 1; MC_steps::Int64 = 10)
+    #prepares lattice in minimal energy state (all aligned)
+    #this is an accessible state if system is ergodic
+    #then runs metropolis algorithm for beta = 0
+    #for 100 Monte-Carlo steps - probably overkill?
+    #equivalent to infinite temperature, all moves are accepted
+    lattice.grid = solved_configuration(lattice.N)
+    run_metropolis_algorithm(lattice, 0.0, k, maximum_iterations = MC_steps * lattice.N^2)
+end
+
+function generate_energies(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, tau_values::Vector{Int64}, move::String = "single flip", measurement_tau_separation::Int64 = 5)
+    #n_correlation = generate_decorrelation_n(lattice, beta_values; k=k, move="single flip")
+    energies = Float64[]
+    # beta values array of decreasing temperatures
+    # as we cool from hot to cold
+    # so increasing beta
+    
+    # for each beta value
+    # run metropolis algorithm for n_correlation[i] iterations
+    # our decorrelation cutoff determined by "generate_decorrelation_n"
+    # calculate the total energy of the lattice and store in array
+
+    #prepare lattice in hot state
+    prepare_lattice!(lattice)
+    MC_step = lattice.N^2
+    for (i,beta) in enumerate(beta_values)
+        println(beta)
+        run_metropolis_algorithm(lattice, beta, k, move, maximum_iterations = tau_values[i] * measurement_tau_separation*MC_step)
+        E = energy(lattice)
+        push!(energies, E)
+    end
+    return energies
+end
+    
+function generate_saddles_run(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, tau_values::Vector{Int64}, measurement_tau_separation::Int64 = 5, move::String = "single flip")
+    # prepare lattice in a 'hot state'
+    # for each beta
+    # cool to beta using single spin flips
+    # once cooled, explore moves, calculate energy of system
+
+    prepare_lattice!(lattice)
+    # we could also use the decorrelation_n here
+    # to determine how many iterations it takes to cool?
+    # make sure we're starting hot (low beta)
+    saddle_values = Int64[]
+    energy_values = Float64[]
+
+    for (i,beta) in enumerate(beta_values)
+        run_metropolis_algorithm(lattice, beta, k, "single flip", maximum_iterations = tau_values[i]* measurement_tau_separation)
+        push!(energy_values, energy(lattice))
+        saddles = explore_moves(lattice, k, move)
+        push!(saddle_values,saddles)
+    end
+    return (saddle_values, energy_values, beta_values)
+end
+
+function generate_saddles(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, move::String,  m::Int64 = 1, cooling_time::Int64 = 10000)
+    # generate multiple runs of saddle points
+    # and return the average saddle point
+    # and energy values
+    saddle_values = []
+    energy_values = []
+    output_beta_vals = []
+    critical_energy_values = []
+    critical_beta_values = []
+
+   # to use threads?
+    for j in 1:m
+         #add noise to beta values
+        noisy_beta_values = beta_values .+ randn(length(beta_values)) .* 0.1 .* beta_values
+        #println(beta_values)
+        #println(noisy_beta_values)
+        (saddles, energies, betas) = generate_saddles_run(lattice, noisy_beta_values, k, move, cooling_time)
+        push!(saddle_values, saddles)
+        push!(energy_values, energies)
+        push!(output_beta_vals, betas)
+        println("run = $j")
+        #identifying tempetature and beta at which saddle index vanishes upon cooling.
+        critical_energy = -2.0
+        critical_beta = 0.0
+        for (i,s) in enumerate(saddles)
+            if s == 0
+                critical_energy = energies[i]
+                critical_beta = betas[i]
+                break
+            end
+        end
+        push!(critical_energy_values, critical_energy)
+        push!(critical_beta_values, critical_beta)
+        
+
+    
+
+    
+    end
+    return (saddle_values, energy_values, output_beta_vals, critical_energy_values, critical_beta_values, k)
+end
+
+
+
+# OLD FUNCTIONS:
+# Old method of generating autocorrrelation function and equilibriation times
+
+function generate_autocorrelation_old(lattice::Lattice, beta_values::Vector{Float64}; k::Int64 = 1, move::String = "single flip", tau0_Tmax::Int64= 10, tau0_Tmin::Int64 = 10000, copies::Int64 = 1, tau_length::Int64 = 10)
     T_max = 1 / beta_values[1]
     T_min = 1 / beta_values[end]
     tau0_array = generate_tau_0_array(T_max, T_min, tau0_Tmax, tau0_Tmin, length(beta_values))
@@ -147,7 +320,7 @@ function generate_autocorrelation(lattice::Lattice, beta_values::Vector{Float64}
     return autocorr_beta
 end
 
-function generate_tau_quick(lattice::Lattice, beta_values::Vector{Float64}; k::Int64 = 1, move::String = "single flip" , tau0_Tmax::Int64= 10, tau0_Tmin::Int64 = 10000, copies::Int64 = 1, tau_length::Int64 = 10, save_file::Bool = false, filename::String = "autocorrelation.csv")
+function generate_tau_quick_old(lattice::Lattice, beta_values::Vector{Float64}; k::Int64 = 1, move::String = "single flip" , tau0_Tmax::Int64= 10, tau0_Tmin::Int64 = 10000, copies::Int64 = 1, tau_length::Int64 = 10, save_file::Bool = false, filename::String = "autocorrelation.csv")
     autocorr_beta = generate_autocorrelation(lattice, beta_values, k = k, move = move, tau0_Tmax = tau0_Tmax, tau0_Tmin = tau0_Tmin, copies = copies, tau_length = tau_length)
    if save_file 
         open(filename, "w") do io
@@ -172,178 +345,4 @@ function generate_tau_quick(lattice::Lattice, beta_values::Vector{Float64}; k::I
         push!(tau_values, tau)
     end
     return tau_values
-end
-
-
-function generate_autocorrelation2(lattice::Lattice, beta_values::Vector{Float64}; k::Int64 = 1, move::String = "single flip")
-    # sum over sites on lattice only at the end
-    measurement_steps = 100000
-    equilib_steps =5000
-    MC_step = lattice.N^2
-    max_lag = 1000
-    lag = [i for i in 0:max_lag]
-    autocorr_beta = []
-
-    for beta in beta_values
-        println(beta)
-        time = now()
-        history = []
-
-        for _ in 1:equilib_steps * MC_step
-            monte_carlo_timestep!(lattice, move, beta, k = k)
-        end
-
-        #measure lattice evolution every MC step
-        for _ in 1:measurement_steps
-            measurement = energy(lattice)
-            #measurement = sum(lattice.grid) / lattice.N^2
-            push!(history, measurement)
-            for _ in 1:MC_step/10
-                monte_carlo_timestep!(lattice, move, beta, k = k)
-            end
-        end
-        if beta == beta_values[1]
-            println(history)
-        end
-
-        mag_avg = mean(history)
-        mag_var= var(history)
-
-        autocorr_history = []
-        for tau in lag
-            autocorr = 0
-            for t0 in 1:(length(history) - tau)
-                autocorr += (history[t0] - mag_avg) * (history[t0 + tau] - mag_avg)
-            end
-            autocorr = autocorr / ((length(history) - tau)*mag_var)
-            push!(autocorr_history, autocorr)
-        end
-        push!(autocorr_beta, (beta, autocorr_history))
-        println(now() - time)
-    end
-    return autocorr_beta
-end
-
-function generate_tau_quick2(lattice::Lattice, beta_values::Vector{Float64}, save_file::Bool = false; k::Int64 = 1, move::String = "single flip", filename::String = "autocorrelation.csv")
-    autocorr_beta = generate_autocorrelation2(lattice, beta_values, k = k, move = move)
-    if save_file
-        open(filename, "w") do io
-            for entry in autocorr_beta
-                autocorr = entry[2]  # Extract the autocorrelation vector
-                writedlm(io, [autocorr], ',')  # Write as a row
-            end
-        end
-    end
-
-    tau_values = []
-    for (i, beta) in enumerate(beta_values)
-        autocorr = autocorr_beta[i][2]
-        tau = autocorr[end]
-        for (j,a) in enumerate(autocorr)
-            if a < exp(-1)
-                tau = j
-                break
-            end
-        end
-        push!(tau_values, tau)
-    end
-    return tau_values
-end
-
-
-function prepare_lattice!(lattice::Lattice,k::Int64 = 1; MC_steps::Int64 = 10)
-    #prepares lattice in minimal energy state (all aligned)
-    #this is an accessible state if system is ergodic
-    #then runs metropolis algorithm for beta = 0
-    #for 100 Monte-Carlo steps - probably overkill?
-    #equivalent to infinite temperature, all moves are accepted
-    lattice.grid = solved_configuration(lattice.N)
-    run_metropolis_algorithm(lattice, 0.0, k, maximum_iterations = MC_steps * lattice.N^2)
-end
-
-function generate_energies(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, tau_values::Vector{Int64}, move::String = "single flip", measurement_tau_separation::Int64 = 5)
-    #n_correlation = generate_decorrelation_n(lattice, beta_values; k=k, move="single flip")
-    energies = Float64[]
-    # beta values array of decreasing temperatures
-    # as we cool from hot to cold
-    # so increasing beta
-    
-    # for each beta value
-    # run metropolis algorithm for n_correlation[i] iterations
-    # our decorrelation cutoff determined by "generate_decorrelation_n"
-    # calculate the total energy of the lattice and store in array
-
-    #prepare lattice in hot state
-    prepare_lattice!(lattice, 1)
-    for (i,beta) in enumerate(beta_values)
-        #println(beta)
-        run_metropolis_algorithm(lattice, beta, k, move, maximum_iterations = tau_values[i] * measurement_tau_separation)
-        E = energy(lattice)
-        push!(energies, E)
-    end
-    return energies
-end
-    
-function generate_saddles_run(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, tau_values::Vector{Int64}, measurement_tau_separation::Int64 = 5, move::String = "single flip")
-    # prepare lattice in a 'hot state'
-    # for each beta
-    # cool to beta using single spin flips
-    # once cooled, explore moves, calculate energy of system
-
-    prepare_lattice!(lattice)
-    # we could also use the decorrelation_n here
-    # to determine how many iterations it takes to cool?
-    # make sure we're starting hot (low beta)
-    saddle_values = Int64[]
-    energy_values = Float64[]
-
-    for (i,beta) in enumerate(beta_values)
-        run_metropolis_algorithm(lattice, beta, k, "single flip", maximum_iterations = tau_values[i]*measurement_tau_separation)
-        push!(energy_values, energy(lattice))
-        saddles = explore_moves(lattice, k, move)
-        push!(saddle_values,saddles)
-    end
-    return (saddle_values, energy_values, beta_values)
-end
-
-function generate_saddles(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, move::String,  m::Int64 = 1, cooling_time::Int64 = 10000)
-    # generate multiple runs of saddle points
-    # and return the average saddle point
-    # and energy values
-    saddle_values = []
-    energy_values = []
-    output_beta_vals = []
-    critical_energy_values = []
-    critical_beta_values = []
-
-   # to use threads?
-    for j in 1:m
-         #add noise to beta values
-        noisy_beta_values = beta_values .+ randn(length(beta_values)) .* 0.1 .* beta_values
-        #println(beta_values)
-        #println(noisy_beta_values)
-        (saddles, energies, betas) = generate_saddles_run(lattice, noisy_beta_values, k, move, cooling_time)
-        push!(saddle_values, saddles)
-        push!(energy_values, energies)
-        push!(output_beta_vals, betas)
-        println("run = $j")
-        #identifying tempetature and beta at which saddle index vanishes upon cooling.
-        critical_energy = -2.0
-        critical_beta = 0.0
-        for (i,s) in enumerate(saddles)
-            if s == 0
-                critical_energy = energies[i]
-                critical_beta = betas[i]
-                break
-            end
-        end
-        push!(critical_energy_values, critical_energy)
-        push!(critical_beta_values, critical_beta)
-        
-
-    
-
-    
-    end
-    return (saddle_values, energy_values, output_beta_vals, critical_energy_values, critical_beta_values, k)
 end

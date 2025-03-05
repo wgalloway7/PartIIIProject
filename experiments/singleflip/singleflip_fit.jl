@@ -48,34 +48,12 @@ function calculate_C_from_fluctuations(energy_runs::Vector{Vector{Float64}}, bet
     return C_values
 end
 
-function figure_C(energy_runs::Vector{Vector{Float64}}, beta_values::Vector{Float64}, filename::String, folder::String, N::Int64)
-    C_derivative = calculate_C_from_derivative(energy_runs, beta_values)
-    C_fluctuations = calculate_C_from_fluctuations(energy_runs, beta_values)
-    
-    p = plot()
-    plot!(p, background_color = "#333333", gridcolor = :white, legend = :topright)
-    plot!(p, beta_values[1:end-1], abs.(C_derivative), label = "Derivative", lw = 2)
-    plot!(p, beta_values, abs.(C_fluctuations * N^2), label = "Fluctuations", lw = 2)
-    
-    xlabel!(p, "Beta", xlabelcolor = :white)
-    ylabel!(p, "C", ylabelcolor = :white)
-    title!(p, "Heat capacity from single flip energy runs, N = $N", titlecolor = :white)
-    savefig(joinpath(folder, filename))
-end
-N = 200
-beta_values = 1 ./ generate_T_intervals(10.0, 0.25, 100)
-#E_runs = readdlm("experiments\\singleflip\\single_flips.csv", ',', Float64)
-E_runs = readdlm("single_flips_N100_p8.csv", ',', Float64)
-E_runs_vector = [collect(row) for row in eachrow(E_runs)]
-figure_C(E_runs_vector, beta_values, "C_singleflip.png", "", N)
-
 
 function entropy_from_heat_capacity(C::Vector{Float64}, beta_values::Vector{Float64})
     beta_values = beta_values[1:end-1]
     T_values = 1.0 ./ beta_values
-
-    reverse!(C)
     reverse!(T_values)
+    reverse!(C)
 
     S = Float64[0.0]
     for i in 2:length(T_values)
@@ -84,7 +62,9 @@ function entropy_from_heat_capacity(C::Vector{Float64}, beta_values::Vector{Floa
         push!(S, S[end] + avg_C_over_T * dT)  # Integrate (C/T) dT
     end
     return S, T_values
+
 end
+
 
 
 # Onsager free energy per spin (with J = 1, k_B = 1)
@@ -142,6 +122,46 @@ end
 
 
 
+function figure_C(energy_runs::Vector{Vector{Float64}}, beta_values::Vector{Float64}, filename::String, folder::String, N::Int64)
+    C_derivative = calculate_C_from_derivative(energy_runs, beta_values)
+    C_fluctuations = calculate_C_from_fluctuations(energy_runs, beta_values)
+    
+    p = plot()
+    plot!(p, beta_values[1:end-1], abs.(C_derivative), label = "Derivative", lw = 2)
+    plot!(p, beta_values, onsager_specific_heat.(beta_values,N), label = "Onsager specific heat capacity", lw = 2)
+    #plot!(p, beta_values, abs.(C_fluctuations * N^2), label = "Fluctuations", lw = 2)
+    
+    xlabel!(p, "Beta", xlabelcolor = :white)
+    ylabel!(p, "C", ylabelcolor = :white)
+    title!(p, "Heat capacity from single flip energy runs, N = $N", titlecolor = :white)
+    vline!(p, [log(1+sqrt(2))/2], label="beta_c = ln(1+sqrt2)/2", color=:red, linestyle=:dash)
+    savefig(p,joinpath(folder, filename))
+
+    p1 = plot()
+    plot!(p1, 1 ./ beta_values[1:end-1], abs.(C_derivative), label = "Derivative", lw = 2)
+    plot!(p1, 1 ./ beta_values, onsager_specific_heat.(beta_values,N), label = "Onsager specific heat capacity", lw = 2)
+    #plot!(p, beta_values, abs.(C_fluctuations * N^2), label = "Fluctuations", lw = 2)
+    
+    xlabel!(p1, "T", xlabelcolor = :white)
+    ylabel!(p1, "C", ylabelcolor = :white)
+    title!(p1, "Heat capacity from single flip energy runs, N = $N", titlecolor = :white)
+    vline!(p1, [2/log(1+sqrt(2))], label="T_c = 2/ln(1+sqrt2)", color=:red, linestyle=:dash)
+    savefig(p1,joinpath(folder, "beta_$filename"))
+end
+
+N = 100
+beta_values = 1 ./ generate_T_intervals(4.0, 0.25, 100)
+#E_runs = readdlm("experiments\\singleflip\\single_flips.csv", ',', Float64)
+E_runs = readdlm("single_flips_new_method.csv", ',', Float64)
+E_runs_vector = [collect(row) for row in eachrow(E_runs)]
+figure_C(E_runs_vector, beta_values, "C_singleflip.png", "", N)
+
+
+
+
+
+
+
 C = calculate_C_from_derivative(E_runs_vector, beta_values)
 S_values,T_vals = entropy_from_heat_capacity(C, beta_values)
 energies = mean(hcat(E_runs_vector...), dims=2)[:]
@@ -171,20 +191,21 @@ ylabel!(plot4, "E(T)", ylabelcolor = :white)
 title!(plot4, "onsager energy, N = $N", titlecolor = :white)
 savefig(plot4,"onsager energy.png")
 
-plot5 = plot()
-T_c = 2 / log(1+sqrt(2))
-println(T_c)
-plot!(plot5, beta_values, onsager_specific_heat.(beta_values,N), label = "Onsager specific heat capacity", lw = 2)
-plot!(plot5, beta_values[1:end-1], C, label = "Specific heat capacity from single flip", lw = 2)
-vline!(plot5, [1/T_c], label="beta_c = ln(1+sqrt2)/2", color=:red, linestyle=:dash)
-xlabel!(plot5, "Beta", xlabelcolor = :white)
-ylabel!(plot5, "C(T)", ylabelcolor = :white)
-title!(plot5, "onsager heat capacity, N = $N", titlecolor = :white)
-savefig(plot5,"onsager heat capacity.png")
+#plot5 = plot()
+#T_c = 2 / log(1+sqrt(2))
+#println(T_c)
+#plot!(plot5, beta_values, onsager_specific_heat.(beta_values,N), label = "Onsager specific heat capacity", lw = 2)
+#plot!(plot5, beta_values[1:end-1], C, label = "Specific heat capacity from single flip", lw = 2)
+#vline!(plot5, [1/T_c], label="beta_c = ln(1+sqrt2)/2", color=:red, linestyle=:dash)
+#xlabel!(plot5, "Beta", xlabelcolor = :white)
+#ylabel!(plot5, "C(T)", ylabelcolor = :white)
+#title!(plot5, "onsager heat capacity, N = $N", titlecolor = :white)
+#savefig(plot5,"onsager heat capacity.png")
 
 plot6 = plot()
 plot!(plot6, beta_values, onsager_entropy.(beta_values,N), label = "Onsager entropy", lw = 2)
 plot!(plot6, 1 ./T_vals, S_values, label = "Entropy from heat capacity", lw = 2)
+hline!(plot6, [log(2)], label="ln(2)", color=:red, linestyle=:dash)
 xlabel!(plot6, "Beta", xlabelcolor = :white)
 ylabel!(plot6, "S(T)", ylabelcolor = :white)
 title!(plot6, "onsager entropy, N = $N", titlecolor = :white)
@@ -197,3 +218,4 @@ xlabel!(plot7, "T", xlabelcolor = :white)
 ylabel!(plot7, "E(T)", ylabelcolor = :white)
 title!(plot7, "onsager energy, N = $N", titlecolor = :white)
 savefig(plot7,"single_flip_energy.png")
+
