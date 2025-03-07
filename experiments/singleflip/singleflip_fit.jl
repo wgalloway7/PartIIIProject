@@ -152,9 +152,9 @@ end
 N = 100
 beta_values = 1 ./ generate_T_intervals(4.0, 0.25, 100)
 #E_runs = readdlm("experiments\\singleflip\\single_flips.csv", ',', Float64)
-E_runs = readdlm("single_flips_new_method.csv", ',', Float64)
+E_runs = readdlm("single_flips_lowtau_many_runs.csv", ',', Float64)
 E_runs_vector = [collect(row) for row in eachrow(E_runs)]
-figure_C(E_runs_vector, beta_values, "C_singleflip.png", "", N)
+figure_C(E_runs_vector, beta_values, "C_singleflip_many.png", "", N)
 
 
 
@@ -181,7 +181,7 @@ plot!(plot3, beta_values, onsager_free_energy.(beta_values,N), label = "Onsager 
 xlabel!(plot3, "Beta", xlabelcolor = :white)
 ylabel!(plot3, "F(T)", ylabelcolor = :white)
 title!(plot3, "onsager free energy, N = $N", titlecolor = :white)
-savefig(plot3,"onsager free energy.png")
+savefig(plot3,"onsager free energy_many.png")
 
 
 plot4 = plot()
@@ -189,7 +189,7 @@ plot!(plot4, beta_values, onsager_energy.(beta_values,N), label = "Onsager energ
 xlabel!(plot4, "Beta", xlabelcolor = :white)
 ylabel!(plot4, "E(T)", ylabelcolor = :white)
 title!(plot4, "onsager energy, N = $N", titlecolor = :white)
-savefig(plot4,"onsager energy.png")
+savefig(plot4,"onsager energy_many.png")
 
 #plot5 = plot()
 #T_c = 2 / log(1+sqrt(2))
@@ -209,7 +209,7 @@ hline!(plot6, [log(2)], label="ln(2)", color=:red, linestyle=:dash)
 xlabel!(plot6, "Beta", xlabelcolor = :white)
 ylabel!(plot6, "S(T)", ylabelcolor = :white)
 title!(plot6, "onsager entropy, N = $N", titlecolor = :white)
-savefig(plot6,"onsager entropy.png")
+savefig(plot6,"onsager entropy_many.png")
 
 plot7 = plot()
 plot!(plot7, 1 ./beta_values, energies, label = "Single flip energy", lw = 2)
@@ -217,5 +217,5 @@ plot!(plot7, 1 ./beta_values, onsager_energy.(beta_values,N), label = "Onsager e
 xlabel!(plot7, "T", xlabelcolor = :white)
 ylabel!(plot7, "E(T)", ylabelcolor = :white)
 title!(plot7, "onsager energy, N = $N", titlecolor = :white)
-savefig(plot7,"single_flip_energy.png")
+savefig(plot7,"single_flip_energy_many.png")
 

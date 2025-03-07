@@ -80,7 +80,7 @@ function generate_autocorrelation(lattice::Lattice, beta_values::Vector{Float64}
     autocorr_beta = []
 
     for beta in beta_values
-        println("beta = $beta")
+        #println("beta = $beta")
         time = now()
         history = []
 
@@ -111,7 +111,7 @@ function generate_autocorrelation(lattice::Lattice, beta_values::Vector{Float64}
             push!(autocorr_history, autocorr)
         end
         push!(autocorr_beta, (beta, autocorr_history))
-        println(now() - time)
+        #println(now() - time)
     end
     return autocorr_beta
 end
@@ -169,7 +169,7 @@ function generate_energies(lattice::Lattice, beta_values::Vector{Float64}, k::In
     prepare_lattice!(lattice)
     MC_step = lattice.N^2
     for (i,beta) in enumerate(beta_values)
-        println(beta)
+        #println(beta)
         run_metropolis_algorithm(lattice, beta, k, move, maximum_iterations = tau_values[i] * measurement_tau_separation*MC_step)
         E = energy(lattice)
         push!(energies, E)
