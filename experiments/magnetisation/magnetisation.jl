@@ -12,7 +12,7 @@ N = 100
 lattice = Lattice(N)
 lattice.grid = solved_configuration(N)
 beta_values = 1 ./ generate_T_intervals(4.0, 0.25, 100)
-copies = 5
+copies = 10
 
 magnetisation_runs = []
 move = "single flip"
@@ -26,8 +26,7 @@ end
 writedlm("magnetisation.csv", hcat(beta_values, magnetisation_runs...), ',')
 
 p = plot()
-for i in 1:copies
-    plot!(p, beta_values, abs(magnetisation_runs[i]), label="Copy $i")
-end
+average_magnetisation = mean(hcat(magnetisation_runs...), dims = 2)[:]
+plot!(p, beta_values, abs.(average_magnetisation), label="Average")
 savefig(p, "magnetisation.png")
 
