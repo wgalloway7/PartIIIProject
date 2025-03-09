@@ -32,7 +32,7 @@ function concatenate_energies(lattice::Lattice, copies::Int64, beta_values::Vect
     return mean(hcat(energy_runs...), dims=2)[:]
 end
 
-function figure_E_anneal(lattice::Lattice, beta_values::Vector{Float64}, k_values::Vector{Int64}, copies::Int64, filename::String, datafile::String, folder::String, N::Int64, move::String = "single flip", decorrelation_copies::Int64 = 1, decorrelation_n_multiplier::Float64 = 1, maximum_iterations::Int64 = 10000)
+function figure_E_anneal(lattice::Lattice, beta_values::Vector{Float64}, k_values::Vector{Int64}, copies::Int64, filename::String, datafile::String, folder::String, N::Int64, move::String = "single flip")
     colors = cgrad(:RdBu, length(k_values))  # Set1 is a color palette with distinct colors
     p = plot()
     plot!(p, background_color = "#333333", gridcolor = :white, legend=:topright)
@@ -41,15 +41,17 @@ function figure_E_anneal(lattice::Lattice, beta_values::Vector{Float64}, k_value
     #generate decorrelation n for single flip ie k =1
     tau_values = lattice.tau_values
     for (i, k) in enumerate(k_values)
-        println(k)
+        time = now()
         avg_energies = concatenate_energies(lattice, copies, beta_values, k, tau_values, move)
         push!(all_data, avg_energies)
         plot!(p, beta_values, avg_energies, label = "k = $k", color = colors[i])
+        println("Finished k = $k in $(now() - time)")
     end
     
     xlabel!(p,"Beta", xlabelcolor = :white)
     ylabel!(p,"Energy", ylabelcolor = :white)
     title!(p,"N = $N, copies = $copies, $move", titlecolor = :white)
+    vline!(p, [log(1 + sqrt(2))/2], label = "Beta_c")
     savefig(joinpath(folder, filename))
     
     # Save data to file

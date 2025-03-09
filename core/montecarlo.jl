@@ -78,9 +78,11 @@ function generate_autocorrelation(lattice::Lattice, beta_values::Vector{Float64}
     MC_step = lattice.N^2
     lag = [i for i in 0:max_lag]
     autocorr_beta = []
+    m_values = []
+    E_values = []
 
     for beta in beta_values
-        #println("beta = $beta")
+        println("beta = $beta")
         time = now()
         history = []
 
@@ -93,7 +95,7 @@ function generate_autocorrelation(lattice::Lattice, beta_values::Vector{Float64}
             measurement = energy(lattice)
             #measurement = sum(lattice.grid) / lattice.N^2
             push!(history, measurement)
-            for _ in 1:MC_step/10
+            for _ in 1:MC_step
                 monte_carlo_timestep!(lattice, move, beta, k = k)
             end
         end
@@ -111,13 +113,29 @@ function generate_autocorrelation(lattice::Lattice, beta_values::Vector{Float64}
             push!(autocorr_history, autocorr)
         end
         push!(autocorr_beta, (beta, autocorr_history))
+        push!(m_values, m)
+        push!(E_values, mag_avg)
         #println(now() - time)
     end
-    return autocorr_beta
+    return autocorr_beta, E_values, m_values
 end
 
+function generate_magnetisation(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, tau_values::Vector{Int64}, move::String = "single flip", measurement_tau_separation::Int64 = 1)
+    mags = Float64[]
+    prepare_lattice!(lattice)
+    MC_step = lattice.N^2
+    for (i,beta) in enumerate(beta_values)
+        println(beta)
+        run_metropolis_algorithm(lattice, beta, k, move, maximum_iterations = tau_values[i] * measurement_tau_separation * MC_step)
+        m = sum(lattice.grid) / lattice.N^2
+        push!(mags, m)
+    end
+    return mags
+end
+
+
 function generate_tau(lattice::Lattice, beta_values::Vector{Float64}, save_file::Bool = false; k::Int64 = 1, move::String = "single flip", filename::String = "autocorrelation.csv", max_lag::Int64 = 250, measurement_steps::Int64 = 15000, equilib_steps::Int64 = 1250)
-    autocorr_beta = generate_autocorrelation(lattice, beta_values, k = k, move = move, max_lag = max_lag, measurement_steps = measurement_steps, equilib_steps = equilib_steps)
+    autocorr_beta, E, m = generate_autocorrelation(lattice, beta_values, k = k, move = move, max_lag = max_lag, measurement_steps = measurement_steps, equilib_steps = equilib_steps)
     if save_file
         open(filename, "w") do io
             for entry in autocorr_beta
@@ -139,7 +157,7 @@ function generate_tau(lattice::Lattice, beta_values::Vector{Float64}, save_file:
         end
         push!(tau_values, tau)
     end
-    return tau_values
+    return tau_values, E, m
 end
 
 
@@ -153,7 +171,7 @@ function prepare_lattice!(lattice::Lattice,k::Int64 = 1; MC_steps::Int64 = 10)
     run_metropolis_algorithm(lattice, 0.0, k, maximum_iterations = MC_steps * lattice.N^2)
 end
 
-function generate_energies(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, tau_values::Vector{Int64}, move::String = "single flip", measurement_tau_separation::Int64 = 5)
+function generate_energies(lattice::Lattice, beta_values::Vector{Float64}, k::Int64, tau_values::Vector{Int64}, move::String = "single flip", measurement_tau_separation::Int64 = 1)
     #n_correlation = generate_decorrelation_n(lattice, beta_values; k=k, move="single flip")
     energies = Float64[]
     # beta values array of decreasing temperatures
@@ -169,7 +187,7 @@ function generate_energies(lattice::Lattice, beta_values::Vector{Float64}, k::In
     prepare_lattice!(lattice)
     MC_step = lattice.N^2
     for (i,beta) in enumerate(beta_values)
-        #println(beta)
+        #println("beta=$beta")
         run_metropolis_algorithm(lattice, beta, k, move, maximum_iterations = tau_values[i] * measurement_tau_separation*MC_step)
         E = energy(lattice)
         push!(energies, E)

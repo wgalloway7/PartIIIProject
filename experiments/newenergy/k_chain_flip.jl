@@ -18,7 +18,7 @@ lattice.grid = solved_configuration(N)
 
 
 beta_values = 1 ./ generate_T_intervals(10.0, 0.5, 100)
-k_values = [i for i in 1:49]
+k_values = [i for i in 1:10]
 copies = 10
 folder = ""
 
@@ -28,9 +28,8 @@ time = now()
 file_name =  "bigger k chain flip.png"
 data_file = "bigger k chain flip.csv"
 
-decorrelation_copies = 10
 time = now()
 println("started")
 figure_E_anneal(lattice, beta_values, k_values, copies, file_name, data_file, folder, N, move)
-println(time - now())
+println(now()-time)
 println("Finished all")

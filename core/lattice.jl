@@ -12,7 +12,7 @@ mutable struct Lattice
     tau_values::Vector{Int64}  # Vector to store the tau values read from a CSV
 
     # Constructor to initialize the lattice with solved configuration and tau values
-    function Lattice(N::Int64, csv_file::String = "../../core/tau_values_flat_low.csv")
+    function Lattice(N::Int64, csv_file::String = "../../core/tau_values_flat.csv")
         grid = solved_configuration(N)
         tau_values = read_tau_values(csv_file)
         new(grid, N, tau_values)
